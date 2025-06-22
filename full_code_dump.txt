@@ -1,0 +1,1089 @@
+﻿### --- FILE: D:\legal_ai_agent\app\document_generator.py --- ###
+import sys
+import io
+import logging
+from docx import Document
+
+# Р—Р°Р±РµР·РїРµС‡РёС‚Рё РїСЂР°РІРёР»СЊРЅРµ РІРёРІРµРґРµРЅРЅСЏ Сѓ РєРѕРЅСЃРѕР»СЊ Р· UTF-8
+sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
+
+logging.basicConfig(level=logging.INFO)
+
+def generate_docx_from_template(template_path, context, output_path):
+    try:
+        doc = Document(template_path)
+        for paragraph in doc.paragraphs:
+            for key, value in context.items():
+                if key in paragraph.text:
+                    paragraph.text = paragraph.text.replace(f"{{{{{key}}}}}", str(value))
+        doc.save(output_path)
+        logging.info(f"Р”РѕРєСѓРјРµРЅС‚ Р·Р±РµСЂРµР¶РµРЅРѕ: {output_path}")
+        return output_path
+    except Exception as e:
+        logging.error(f"РџРѕРјРёР»РєР° РїСЂРё СЃС‚РІРѕСЂРµРЅРЅС– РґРѕРєСѓРјРµРЅС‚Р°: {e}")
+        raise
+
+
+
+### --- FILE: D:\legal_ai_agent\app\document_loader.py --- ###
+import os
+import logging
+import fitz  # PyMuPDF
+from docx import Document as DocxDocument
+from striprtf.striprtf import rtf_to_text
+from PIL import Image
+import pytesseract
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def extract_text_from_file(path: str) -> str:
+    """
+    Р’РёС‚СЏРіСѓС” С‚РµРєСЃС‚ Р· С„Р°Р№Р»Сѓ Р·Р° Р№РѕРіРѕ С€Р»СЏС…РѕРј.
+    РџС–РґС‚СЂРёРјСѓС” PDF, DOCX, RTF, TXT С– Р·РѕР±СЂР°Р¶РµРЅРЅСЏ (OCR).
+    """
+    ext = os.path.splitext(path)[1].lower()
+
+    try:
+        if ext == ".pdf":
+            doc = fitz.open(path)
+            pages = [page.get_text() for page in doc]
+            return "\n".join(pages)
+
+        elif ext == ".docx":
+            doc = DocxDocument(path)
+            return "\n".join(p.text for p in doc.paragraphs)
+
+        elif ext == ".rtf":
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                rtf = f.read()
+            return rtf_to_text(rtf)
+
+        elif ext == ".txt":
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                return f.read()
+
+        elif ext in [".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".gif"]:
+            img = Image.open(path)
+            # РІРєР°Р·СѓС”РјРѕ СѓРєСЂР°С—РЅСЃСЊРєСѓ С‚Р° Р°РЅРіР»С–Р№СЃСЊРєСѓ РґР»СЏ РєСЂР°С‰РѕРіРѕ СЂРѕР·РїС–Р·РЅР°РІР°РЅРЅСЏ
+            return pytesseract.image_to_string(img, lang="ukr+eng")
+
+        else:
+            logger.warning(f"РќРµРїС–РґС‚СЂРёРјСѓРІР°РЅРёР№ С„РѕСЂРјР°С‚ С„Р°Р№Р»Сѓ: {path}")
+            return ""
+
+    except Exception as e:
+        logger.error(f"РџРѕРјРёР»РєР° С‡РёС‚Р°РЅРЅСЏ {ext.upper()} {path}: {e}")
+        return ""
+
+
+### --- FILE: D:\legal_ai_agent\app\embedder.py --- ###
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+vectorizer = TfidfVectorizer()
+
+def embed_chunks(chunks):
+    return vectorizer.fit_transform(chunks).toarray().tolist()
+
+
+
+### --- FILE: D:\legal_ai_agent\app\export_utils.py --- ###
+import os
+import logging
+from docx import Document
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+
+# Р›РѕРіСѓРІР°РЅРЅСЏ Р±РµР· вЂњРґРµС‚Р°С‡Р°вЂќ stdout
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+
+# Р—Р°СЂРµС”СЃС‚СЂСѓР№С‚Рµ С€СЂРёС„С‚ DejaVu Sans (РїС–РґС‚СЂРёРјРєР° РєРёСЂРёР»РёС†С–)
+# РџРѕРєР»Р°РґС–С‚СЊ С„Р°Р№Р» DejaVuSans.ttf Сѓ РєРѕСЂС–РЅСЊ РїСЂРѕС”РєС‚Сѓ
+FONT_NAME = "DejaVuSans"
+FONT_PATH = "DejaVuSans.ttf"
+if not os.path.exists(FONT_PATH):
+    logging.error(f"РќРµ Р·РЅР°Р№РґРµРЅРѕ С€СЂРёС„С‚ {FONT_PATH} вЂ” РїРѕРјС–СЃС‚С–С‚СЊ Р№РѕРіРѕ РІ РєРѕСЂС–РЅСЊ РїСЂРѕС”РєС‚Сѓ")
+else:
+    pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
+
+
+def save_analysis_to_docx(tender_id: str, analysis_text: str, signatures: list = None, output_dir: str = "exports") -> str:
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, f"{tender_id}_Р°РЅР°Р»С–Р·.docx")
+
+    doc = Document()
+    doc.add_heading(f"РђРЅР°Р»С–Р· С‚РµРЅРґРµСЂСѓ {tender_id}", level=0)
+    for section in analysis_text.split("\n\n"):
+        doc.add_paragraph(section)
+
+    if signatures:
+        doc.add_heading("РџС–РґРїРёСЃРё Р· С„Р°Р№Р»С–РІ .p7s", level=1)
+        for sig in signatures:
+            doc.add_paragraph(sig)
+
+    try:
+        doc.save(file_path)
+        logging.info(f"вњ… Word-Р·РІС–С‚ Р·Р±РµСЂРµР¶РµРЅРѕ: {file_path}")
+    except Exception as e:
+        logging.error(f"вќЊ РџРѕРјРёР»РєР° РїСЂРё Р·Р±РµСЂРµР¶РµРЅРЅС– DOCX: {e}")
+        raise
+    return file_path
+
+
+def save_analysis_to_pdf(tender_id: str, analysis_text: str, signatures: list = None, output_dir: str = "exports") -> str:
+    """
+    Р“РµРЅРµСЂСѓС” PDF-Р·РІС–С‚ Р· РєРёСЂРёР»РёС†РµСЋ С‡РµСЂРµР· ReportLab.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, f"{tender_id}_Р°РЅР°Р»С–Р·.pdf")
+    c = canvas.Canvas(file_path, pagesize=A4)
+    width, height = A4
+
+    if FONT_NAME not in pdfmetrics.getRegisteredFontNames():
+        logging.error("РЁСЂРёС„С‚ РЅРµ Р·Р°СЂРµС”СЃС‚СЂРѕРІР°РЅРѕ вЂ” PDF РјРѕР¶Рµ РЅРµ РјС–СЃС‚РёС‚Рё РєРёСЂРёР»РёС†С–")
+        font_to_use = "Helvetica"
+    else:
+        font_to_use = FONT_NAME
+
+    c.setFont(font_to_use, 12)
+    text = c.beginText(40, height - 40)
+    text.textLine(f"РђРЅР°Р»С–Р· С‚РµРЅРґРµСЂСѓ {tender_id}")
+    text.textLine("")
+
+    # Р”РѕРґР°С”РјРѕ Р°РЅР°Р»С–Р· С‚РµРєСЃС‚РѕРј
+    for line in analysis_text.split("\n"):
+        text.textLine(line)
+
+    # Р”РѕРґР°С”РјРѕ РїС–РґРїРёСЃРё
+    if signatures:
+        text.textLine("")
+        text.textLine("РџС–РґРїРёСЃРё Р· С„Р°Р№Р»С–РІ .p7s:")
+        for sig in signatures:
+            text.textLine(sig)
+
+    c.drawText(text)
+    try:
+        c.showPage()
+        c.save()
+        logging.info(f"вњ… PDF-Р·РІС–С‚ Р·Р±РµСЂРµР¶РµРЅРѕ: {file_path}")
+    except Exception as e:
+        logging.error(f"вќЊ РџРѕРјРёР»РєР° РїСЂРё Р·Р±РµСЂРµР¶РµРЅРЅС– PDF: {e}")
+        raise
+
+    return file_path
+
+
+### --- FILE: D:\legal_ai_agent\app\full_analysis.py --- ###
+import os
+from app import document_loader, text_splitter, embedder, vector_store, llm_agent, export_utils, sign_extractor
+import prozorro_loader
+
+def analyze_tender_by_id(tender_id: str) -> str:
+    temp_dir = "documents"
+    prozorro_loader.download_documents(tender_id, temp_dir)
+
+    result_texts = []
+    signatures = []
+
+    for filename in os.listdir(temp_dir):
+        full_path = os.path.join(temp_dir, filename)
+
+        if filename.lower().endswith((".pdf", ".docx")):
+            text = document_loader.extract_text_from_file(full_path)
+            if not text or not text.strip():
+                result_texts.append(f"рџ“„ {filename}\n[WARNING] РџРѕСЂРѕР¶РЅС–Р№ РґРѕРєСѓРјРµРЅС‚.")
+                continue
+
+            chunks = text_splitter.split_text(text)
+            if not chunks:
+                result_texts.append(f"рџ“„ {filename}\n[WARNING] РќРµ РІРґР°Р»РѕСЃСЏ СЂРѕР·Р±РёС‚Рё С‚РµРєСЃС‚.")
+                continue
+
+            embeddings = embedder.embed_chunks(chunks)
+            if not embeddings or not embeddings[0]:
+                result_texts.append(f"рџ“„ {filename}\n[WARNING] РџРѕРјРёР»РєР° РІРµРєС‚РѕСЂРёР·Р°С†С–С—.")
+                continue
+
+            index = vector_store.create_index(embeddings)
+            top_indices = vector_store.search_index(index, embeddings[0])
+            # Р¤С–Р»СЊС‚СЂСѓС”РјРѕ РЅРµРІС–СЂРЅС– С–РЅРґРµРєСЃРё
+            valid = [chunks[i] for i in top_indices if 0 <= i < len(chunks)]
+            if not valid:
+                result_texts.append(f"рџ“„ {filename}\n[WARNING] РќРµРјР° СЂРµР»РµРІР°РЅС‚РЅРёС… С„СЂР°РіРјРµРЅС‚С–РІ.")
+                continue
+
+            context = "\n---\n".join(valid)
+            answer = llm_agent.generate_answer(context, f"РџСЂР°РІРѕРІРёР№ Р·РјС–СЃС‚ РґРѕРєСѓРјРµРЅС‚Р° {filename}:")
+            # РЇРєС‰Рѕ generate_answer РїРѕРІРµСЂРЅСѓРІ РїРѕРјРёР»РєСѓ вЂ” РїРѕРєР°Р·СѓС”РјРѕ С—С—
+            if answer.startswith("[ERROR]"):
+                result_texts.append(f"рџ“„ {filename}\n{answer}")
+            else:
+                result_texts.append(f"рџ“„ {filename}\n{answer}")
+
+        elif filename.lower().endswith(".p7s"):
+            info = sign_extractor.extract_signature_info(full_path)
+            for signer in info:
+                parts = [f"{k}: {v}" for k, v in signer.items()]
+                signatures.append(f"рџ”Џ {filename}: " + ", ".join(parts))
+
+    final = "\n\n".join(result_texts)
+    # РўРµРїРµСЂ export_utils РЅРµ Р»РѕРіСѓС” РІ РїРѕС‚РѕС†С–, Р° РІРёРєРёРґР°С” РІРёРєР»СЋС‡РµРЅРЅСЏ, СЏРєС‰Рѕ С‰РѕСЃСЊ РЅРµ С‚Р°Рє
+    export_utils.save_analysis_to_docx(tender_id, final, signatures)
+    export_utils.save_analysis_to_pdf(tender_id, final, signatures)
+
+    return final
+
+
+### --- FILE: D:\legal_ai_agent\app\llm_agent.py --- ###
+import os
+import time
+import logging
+
+from dotenv import load_dotenv  # <--- Р”РѕРґР°С”РјРѕ
+import openai
+
+# Р—Р°РІР°РЅС‚Р°Р¶СѓС”РјРѕ .env Р· РєРѕСЂРµРЅСЏ РїСЂРѕРµРєС‚Сѓ
+load_dotenv()
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+
+
+def generate_answer(
+    context: str,
+    question: str,
+    max_retries: int = 3,
+    backoff_factor: float = 2.0
+) -> str:
+    """
+    Р“РµРЅРµСЂСѓС” РІС–РґРїРѕРІС–РґСЊ С‡РµСЂРµР· OpenAI Chat API (v1.0+)
+    С–Р· Р°РІС‚РѕРјР°С‚РёС‡РЅРёРј back-off Сѓ СЂР°Р·С– РїРѕРјРёР»РѕРє.
+    """
+    prompt = (
+        f"РљРѕРЅС‚РµРєСЃС‚:\n{context}\n\n"
+        f"РџРёС‚Р°РЅРЅСЏ:\n{question}\n\n"
+        "Р’С–РґРїРѕРІС–РґСЊ:"
+    )
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = openai.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            return response.choices[0].message.content.strip()
+
+        except Exception as e:
+            wait = backoff_factor ** (attempt - 1)
+            logging.warning(
+                f"[Attempt {attempt}/{max_retries}] РџРѕРјРёР»РєР° РїСЂРё РІРёРєР»РёРєСѓ OpenAI: {e}. "
+                f"Р§РµРєР°СЋ {wait} СЃРµРє..."
+            )
+            time.sleep(wait)
+
+    raise RuntimeError("РќРµ РІРґР°Р»РѕСЃСЏ РѕС‚СЂРёРјР°С‚Рё РІС–РґРїРѕРІС–РґСЊ РІС–Рґ OpenAI РїС–СЃР»СЏ РєС–Р»СЊРєРѕС… СЃРїСЂРѕР±.")
+
+
+### --- FILE: D:\legal_ai_agent\app\signature_extractor.py --- ###
+import sys
+import io
+import logging
+import asn1crypto.cms
+import asn1crypto.pem
+
+# Р—Р°Р±РµР·РїРµС‡РёС‚Рё РїСЂР°РІРёР»СЊРЅРµ РІРёРІРµРґРµРЅРЅСЏ Сѓ РєРѕРЅСЃРѕР»СЊ Р· UTF-8
+sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
+
+logging.basicConfig(level=logging.INFO)
+
+def extract_signature_info(file_path):
+    try:
+        with open(file_path, 'rb') as f:
+            raw_data = f.read()
+
+        if asn1crypto.pem.detect(raw_data):
+            _, _, raw_data = asn1crypto.pem.unarmor(raw_data)
+
+        content_info = asn1crypto.cms.ContentInfo.load(raw_data)
+        signer_infos = content_info['content']['signer_infos']
+
+        result = []
+        for signer in signer_infos:
+            sid = signer['sid']
+            signer_info = {
+                'issuer': sid.chosen['issuer'].human_friendly,
+                'serial_number': sid.chosen['serial_number'].native
+            }
+            result.append(signer_info)
+
+        return result
+    except Exception as e:
+        logging.error(f"РџРѕРјРёР»РєР° РїСЂРё РІРёС‚СЏРіСѓРІР°РЅРЅС– РїС–РґРїРёСЃСѓ: {e}")
+        return [{"error": str(e)}]
+
+
+
+### --- FILE: D:\legal_ai_agent\app\signature_reader.py --- ###
+from asn1crypto import cms, x509
+import os
+
+def extract_signature_info(p7s_path):
+    try:
+        with open(p7s_path, 'rb') as f:
+            content = f.read()
+        content_info = cms.ContentInfo.load(content)
+        signer_infos = content_info['content']['signer_infos']
+        certs = content_info['content']['certificates']
+        result = []
+        for signer in signer_infos:
+            sid = signer['sid']
+            serial = sid.chosen['serial_number'].native
+            signer_cert = None
+            for cert in certs:
+                cert = x509.Certificate.load(cert.dump())
+                if cert.serial_number == serial:
+                    signer_cert = cert
+                    break
+            if signer_cert:
+                subject = signer_cert.subject.native
+                result.append({
+                    'РџР†Р‘': subject.get('common_name', 'РЅРµРІС–РґРѕРјРѕ'),
+                    'РћСЂРіР°РЅС–Р·Р°С†С–СЏ': subject.get('organization_name', 'РЅРµРІС–РґРѕРјРѕ'),
+                    'РЎРµСЂС–Р№РЅРёР№ РЅРѕРјРµСЂ': signer_cert.serial_number
+                })
+        return result
+    except Exception as e:
+        return [{'РџРѕРјРёР»РєР°': str(e)}]
+
+
+
+### --- FILE: D:\legal_ai_agent\app\sign_extractor.py --- ###
+import asn1crypto.cms
+import asn1crypto.pem
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+
+def extract_signature_info(file_path: str) -> list:
+    """
+    РџРѕРІРµСЂС‚Р°С” СЃРїРёСЃРѕРє СЃР»РѕРІРЅРёРєС–РІ С–Р· РїРѕР»СЏРјРё issuer/serial_number.
+    РЇРєС‰Рѕ С„Р°Р№Р» РЅРµ РІР°Р»С–РґРЅРёР№ PKCS#7, РїРѕРІРµСЂС‚Р°С” РїСѓСЃС‚РёР№ СЃРїРёСЃРѕРє.
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            raw_data = f.read()
+
+        # РЇРєС‰Рѕ PEM-РѕР±РіРѕСЂС‚РєР°, Р·РЅС–РјР°С”РјРѕ С—С—
+        if asn1crypto.pem.detect(raw_data):
+            _, _, raw_data = asn1crypto.pem.unarmor(raw_data)
+
+        content_info = asn1crypto.cms.ContentInfo.load(raw_data)
+        signer_infos = content_info['content']['signer_infos']
+        certs = content_info['content'].get('certificates', [])
+
+        result = []
+        for signer in signer_infos:
+            sid = signer['sid']
+            serial = sid.chosen['serial_number'].native
+            # Р—РЅР°С…РѕРґРёРјРѕ СЃРµСЂС‚РёС„С–РєР°С‚ Р·Р° СЃРµСЂС–Р№РЅРёРєРѕРј
+            signer_cert = None
+            for cert in certs:
+                cert_obj = cert if isinstance(cert, asn1crypto.x509.Certificate) else asn1crypto.x509.Certificate.load(cert.dump())
+                if cert_obj.serial_number == serial:
+                    signer_cert = cert_obj
+                    break
+            issuer = signer_cert.subject.human_friendly if signer_cert else "Рќ/Р”"
+            result.append({
+                'issuer': issuer,
+                'serial_number': serial
+            })
+
+        return result
+
+    except (ValueError, TypeError) as e:
+        # РќРµ РІР°Р»С–РґРЅРёР№ PKCS#7 Р°Р±Рѕ РЅРµ РІРґР°Р»РѕСЃСЏ СЂРѕР·РїС–Р·РЅР°С‚Рё вЂ” РїСЂРѕСЃС‚Рѕ РїРѕРІРµСЂС‚Р°С”РјРѕ РїСѓСЃС‚РёР№ СЃРїРёСЃРѕРє
+        logging.warning(f"РќРµ РІР°Р»С–РґРЅРёР№ .p7s Р°Р±Рѕ РїРѕРјРёР»РєР° РїР°СЂСЃРёРЅРіСѓ: {e}")
+        return []
+    except Exception as e:
+        logging.error(f"РџРѕРјРёР»РєР° РїСЂРё РІРёС‚СЏРіСѓРІР°РЅРЅС– РїС–РґРїРёСЃСѓ: {e}")
+        return [{'error': str(e)}]
+
+
+### --- FILE: D:\legal_ai_agent\app\text_splitter.py --- ###
+def split_text(text, max_length=500):
+    return [text[i:i + max_length] for i in range(0, len(text), max_length)]
+
+
+
+### --- FILE: D:\legal_ai_agent\app\vector_store.py --- ###
+import faiss
+import numpy as np
+
+def create_index(embeddings):
+    dim = len(embeddings[0])
+    index = faiss.IndexFlatL2(dim)
+    index.add(np.array(embeddings).astype('float32'))
+    return index
+
+def search_index(index, query_vector, top_k=3):
+    D, I = index.search(np.array([query_vector]).astype('float32'), top_k)
+    return I[0]
+
+
+
+### --- FILE: D:\legal_ai_agent\db\init_db.py --- ###
+from db.schema import Base, ENGINE
+
+from .schema import Base, ENGINE
+
+def init_db():
+    Base.metadata.create_all(ENGINE)
+    print("вњ… Database & FTS5 table created.")
+
+if __name__ == "__main__":
+    init_db()
+
+
+### --- FILE: D:\legal_ai_agent\db\schema.py --- ###
+import os
+from sqlalchemy import (
+    Column, Integer, String, Text, DateTime,
+    create_engine, event
+)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+# РЁР»СЏС… РґРѕ Р±Р°Р·Рё РґР°РЅРёС…
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "legal_agent.db")
+ENGINE = create_engine(f"sqlite:///{DB_PATH}", echo=False)
+
+Base = declarative_base()
+Session = sessionmaker(bind=ENGINE)
+
+# --- РўР°Р±Р»РёС†СЏ РґРѕРєСѓРјРµРЅС‚С–РІ (С‚РµРЅРґРµСЂРё + РЅРѕСЂРјР°С‚РёРІРєР°) ---
+class Document(Base):
+    __tablename__ = "documents"
+    id      = Column(Integer, primary_key=True)
+    tender  = Column(String, index=True)    # РЅРѕРјРµСЂ С‚РµРЅРґРµСЂСѓ Р°Р±Рѕ "normative_docs"
+    title   = Column(String)
+    content = Column(Text)
+
+# FTS5 РґР»СЏ С‚Р°Р±Р»РёС†С– documents
+FTS_DOCS = """
+CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts
+USING fts5(title, content, content='documents', content_rowid='id');
+"""
+
+# --- РўР°Р±Р»РёС†СЏ РЅРѕСЂРјР°С‚РёРІРЅРёС… Р°РєС‚С–РІ ---
+class LegalAct(Base):
+    __tablename__ = "legal_acts"
+    id        = Column(Integer, primary_key=True)
+    act_id    = Column(String, unique=True, index=True)  # РІРЅСѓС‚СЂС–С€РЅС–Р№ С–РґРµРЅС‚РёС„С–РєР°С‚РѕСЂ Р°РєС‚Сѓ
+    title     = Column(String)                            # РЅР°Р·РІР° Р°РєС‚Сѓ
+    published = Column(DateTime)                          # РґР°С‚Р° РїСѓР±Р»С–РєР°С†С–С—
+    source    = Column(String)                            # РґР¶РµСЂРµР»Рѕ, РЅР°РїСЂ. "rada.gov.ua"
+    content   = Column(Text)                              # РїРѕРІРЅРёР№ С‚РµРєСЃС‚
+
+# FTS5 РґР»СЏ legal_acts
+FTS_ACTS = """
+CREATE VIRTUAL TABLE IF NOT EXISTS legal_acts_fts
+USING fts5(title, content, content='legal_acts', content_rowid='id');
+"""
+
+# --- РўР°Р±Р»РёС†СЏ СЂС–С€РµРЅСЊ (РђРњРљРЈ С‚Р° СЃСѓРґРё) ---
+class Decision(Base):
+    __tablename__ = "decisions"
+    id           = Column(Integer, primary_key=True)
+    decision_id  = Column(String, unique=True, index=True)  # РІРЅСѓС‚СЂС–С€РЅС–Р№ РЅРѕРјРµСЂ СЂС–С€РµРЅРЅСЏ
+    source       = Column(String)                            # РґР¶РµСЂРµР»Рѕ, РЅР°РїСЂ. "amcu.gov.ua"
+    date         = Column(DateTime)                          # РґР°С‚Р° СЂС–С€РµРЅРЅСЏ
+    pdf_path     = Column(String)                            # С€Р»СЏС… РґРѕ PDF Сѓ С„Р°Р№Р»РѕРІС–Р№ СЃРёСЃС‚РµРјС–
+    meta_data    = Column(Text)                              # JSON-РјРµС‚Р°РґР°РЅС– (СЃС‚СЂСѓРєС‚СѓСЂР°, СѓС‡Р°СЃРЅРёРєРё С‚РѕС‰Рѕ)
+    content      = Column(Text)                              # РІРёС‚СЏРіРЅСѓС‚РёР№ С‚РµРєСЃС‚
+
+# FTS5 РґР»СЏ decisions (С–РЅРґРµРєСЃСѓС”РјРѕ РјРµС‚Р°РґР°РЅС– С‚Р° С‚РµРєСЃС‚)
+FTS_DECISIONS = """
+CREATE VIRTUAL TABLE IF NOT EXISTS decisions_fts
+USING fts5(meta_data, content, content='decisions', content_rowid='id');
+"""
+
+# --- РўР°Р±Р»РёС†СЏ РєРѕРЅСЃСѓР»СЊС‚Р°С†С–Р№ (РїРѕСЂС‚Р°Р» "Р Р°РґРЅРёРє") ---
+class Consultation(Base):
+    __tablename__ = "consultations"
+    id            = Column(Integer, primary_key=True)
+    consult_id    = Column(String, unique=True, index=True)  # ID РєРѕРЅСЃСѓР»СЊС‚Р°С†С–С—
+    question      = Column(Text)                              # С‚РµРєСЃС‚ Р·Р°РїРёС‚Сѓ
+    answer        = Column(Text)                              # С‚РµРєСЃС‚ РІС–РґРїРѕРІС–РґС–
+    consulted_at  = Column(DateTime)                          # РґР°С‚Р° РєРѕРЅСЃСѓР»СЊС‚Р°С†С–С—
+    source_url    = Column(String)                            # URL РѕСЂРёРіС–РЅР°Р»Сѓ
+
+# FTS5 РґР»СЏ consultations
+FTS_CONSULTATIONS = """
+CREATE VIRTUAL TABLE IF NOT EXISTS consultations_fts
+USING fts5(question, answer, content='consultations', content_rowid='id');
+"""
+
+@event.listens_for(Base.metadata, "after_create")
+def create_fts(target, connection, **kw):
+    # РЎС‚РІРѕСЂСЋС”РјРѕ РІСЃС– РІС–СЂС‚СѓР°Р»СЊРЅС– С‚Р°Р±Р»РёС†С– FTS5
+    for stmt in (FTS_DOCS, FTS_ACTS, FTS_DECISIONS, FTS_CONSULTATIONS):
+        connection.exec_driver_sql(stmt)
+
+
+
+### --- FILE: D:\legal_ai_agent\db\__init__.py --- ###
+from .schema import Base, ENGINE, Session, Document, Decision, Consultation
+
+
+### --- FILE: D:\legal_ai_agent\interface\streamlit_app.py --- ###
+import streamlit as st
+import os
+import time
+import sys
+
+# Р”РѕРґР°С”РјРѕ РєРѕСЂРµРЅРµРІСѓ РґРёСЂРµРєС‚РѕСЂС–СЋ РґРѕ С€Р»СЏС…Сѓ С–РјРїРѕСЂС‚Сѓ
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from prozorro_loader import download_documents_with_progress
+
+# РЇРєС‰Рѕ СЂРµР°Р»С–Р·РѕРІР°РЅР° РїРµСЂРµРІС–СЂРєР° РїС–РґРїРёСЃС–РІ вЂ” С–РјРїРѕСЂС‚СѓР№С‚Рµ С—С—, Р°Р±Рѕ Р·Р°РєРѕРјРµРЅС‚СѓР№С‚Рµ С†РµР№ СЂСЏРґРѕРє
+try:
+    from prozorro_loader import analyze_p7s_signatures
+except ImportError:
+    analyze_p7s_signatures = None
+
+st.set_page_config(page_title="Magilarity Legal Agent", layout="wide")
+st.title("рџ¤– Magilarity Legal Agent")
+
+st.markdown("""
+### Р†РЅСЃС‚СЂСѓРјРµРЅС‚Рё:
+- **Р—Р°РІР°РЅС‚Р°Р¶РёС‚Рё С‚РµРЅРґРµСЂ** вЂ” РІРІРµРґС–С‚СЊ РЅРѕРјРµСЂ С‚РµРЅРґРµСЂСѓ Р°Р±Рѕ ID С‚Р° РѕС‚СЂРёРјР°С”С‚Рµ СЃС‚СЂСѓРєС‚СѓСЂСѓ РґРѕРєСѓРјРµРЅС‚С–РІ
+- **РђРЅР°Р»С–Р·** вЂ” (РјР°Р№Р±СѓС‚РЅС–Р№ С„СѓРЅРєС†С–РѕРЅР°Р»)
+- **РџРµСЂРµРІС–СЂРєР° РїС–РґРїРёСЃС–РІ** вЂ” Р·С‡РёС‚СѓС” `.p7s` С‚Р° СЃС‚РІРѕСЂСЋС” Р·РІС–С‚ `РџС–РґРїРёСЃРё.xlsx`
+- **Р’С–РґРєСЂРёС‚Рё РґРѕРєСѓРјРµРЅС‚Рё С‚РµРЅРґРµСЂСѓ** вЂ” РІС–РґРєСЂРёРІР°С” РѕСЃС‚Р°РЅРЅС–Р№ Р·Р°РІР°РЅС‚Р°Р¶РµРЅРёР№ С‚РµРЅРґРµСЂ Сѓ С„Р°Р№Р»РѕРІС–Р№ СЃРёСЃС‚РµРјС–
+""")
+
+# Р’РІРµРґРµРЅРЅСЏ
+input_id = st.text_input("Р’РІРµРґС–С‚СЊ РїСѓР±Р»С–С‡РЅРёР№ РЅРѕРјРµСЂ Р°Р±Рѕ ID С‚РµРЅРґРµСЂСѓ")
+
+col1, col2, col3, col4 = st.columns(4)
+
+download_triggered = col1.button("рџ“Ґ Р—Р°РІР°РЅС‚Р°Р¶РёС‚Рё С‚РµРЅРґРµСЂ")
+analyze_triggered = col2.button("рџ“Љ РђРЅР°Р»С–Р· (Сѓ СЂРѕР·СЂРѕР±С†С–)")
+verify_triggered = col3.button("рџ§ѕ РџРµСЂРµРІС–СЂРєР° РїС–РґРїРёСЃС–РІ")
+open_docs_triggered = col4.button("рџ“‚ Р’С–РґРєСЂРёС‚Рё РґРѕРєСѓРјРµРЅС‚Рё С‚РµРЅРґРµСЂСѓ")
+
+# Р—Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ
+if download_triggered and input_id:
+    with st.spinner("Р—Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РґР°РЅРёС… Р· Prozorro..."):
+        progress_bar = st.progress(0)
+        log_area = st.empty()
+
+        def streamlit_logger(msg):
+            log_area.text(msg)
+
+        start_time = time.time()
+        count = download_documents_with_progress(input_id, progress_bar, streamlit_logger)
+        end_time = time.time()
+
+        if count > 0:
+            st.success(f"вњ… Р—Р°РІР°РЅС‚Р°Р¶РµРЅРѕ {count} С„Р°Р№Р»С–РІ Р·Р° {end_time - start_time:.2f} СЃРµРє")
+        else:
+            st.error("вќЊ РќРµ РІРґР°Р»РѕСЃСЏ Р·Р°РІР°РЅС‚Р°Р¶РёС‚Рё РґРѕРєСѓРјРµРЅС‚Рё")
+
+# РџРµСЂРµРІС–СЂРєР° РїС–РґРїРёСЃС–РІ
+if verify_triggered:
+    if analyze_p7s_signatures is None:
+        st.warning("Р¤СѓРЅРєС†С–РѕРЅР°Р» РїРµСЂРµРІС–СЂРєРё РїС–РґРїРёСЃС–РІ РЅРµ СЂРµР°Р»С–Р·РѕРІР°РЅРѕ.")
+    else:
+        folder_root = "downloads"
+        dirs = [d for d in os.listdir(folder_root) if os.path.isdir(os.path.join(folder_root, d))]
+        if not dirs:
+            st.warning("РЎРїРѕС‡Р°С‚РєСѓ Р·Р°РІР°РЅС‚Р°Р¶С‚Рµ С‚РµРЅРґРµСЂ")
+        else:
+            last_folder = os.path.join(folder_root, sorted(dirs)[-1])
+            with st.spinner("РџРµСЂРµРІС–СЂРєР° С†РёС„СЂРѕРІРёС… РїС–РґРїРёСЃС–РІ..."):
+                analyze_p7s_signatures(last_folder)
+            st.success("вњ… Р“РѕС‚РѕРІРѕ! РџРµСЂРµРІС–СЂРµРЅРѕ: " + last_folder)
+
+# Р’С–РґРєСЂРёС‚Рё РґРѕРєСѓРјРµРЅС‚Рё
+if open_docs_triggered:
+    folder_root = "downloads"
+    dirs = [d for d in os.listdir(folder_root) if os.path.isdir(os.path.join(folder_root, d))]
+    if not dirs:
+        st.warning("РќРµРјР°С” Р·Р°РІР°РЅС‚Р°Р¶РµРЅРёС… С‚РµРЅРґРµСЂС–РІ")
+    else:
+        last_folder = sorted(dirs)[-1]
+        full_path = os.path.join(folder_root, last_folder)
+        st.write(f"рџ“Ѓ РћСЃС‚Р°РЅРЅС–Р№ Р·Р°РІР°РЅС‚Р°Р¶РµРЅРёР№ С‚РµРЅРґРµСЂ: `{last_folder}`")
+        st.write(f"РЁР»СЏС… РґРѕ РїР°РїРєРё: `{full_path}`")
+        st.success("Р”РѕРєСѓРјРµРЅС‚Рё РіРѕС‚РѕРІС– РґР»СЏ РїРµСЂРµРіР»СЏРґСѓ.")
+
+
+### --- FILE: D:\legal_ai_agent\ingest.py --- ###
+import os
+from pathlib import Path
+
+from sqlalchemy import text
+from db.schema import Session, Document, ENGINE
+
+import fitz       # PyMuPDF
+import docx       # python-docx
+
+def extract_text(path: str) -> str:
+    ext = Path(path).suffix.lower()
+    try:
+        if ext == ".pdf":
+            text_chunks = []
+            with fitz.open(path) as pdf:
+                for page in pdf:
+                    text_chunks.append(page.get_text())
+            return "\n".join(text_chunks)
+        elif ext in (".docx",):
+            doc = docx.Document(path)
+            return "\n".join(p.text for p in doc.paragraphs)
+        else:
+            # РґР»СЏ С–РЅС€РёС… С„РѕСЂРјР°С‚С–РІ РјРѕР¶РЅР° РґРѕРґР°С‚Рё Р»РѕРіС–РєРё, РїРѕРєРё вЂ“ РїСѓСЃС‚РёР№ СЂСЏРґРѕРє
+            return ""
+    except Exception as e:
+        print(f"[warn] РїРѕРјРёР»РєР° РІРёС‚СЏРіСѓ С‚РµРєСЃС‚Сѓ Р· {path}: {e}")
+        return ""
+
+def ingest_all(downloads_folder="downloads"):
+    session = Session()
+    for tender_dir in Path(downloads_folder).iterdir():
+        if not tender_dir.is_dir():
+            continue
+        tender_id = tender_dir.name
+        for file in tender_dir.rglob("*"):
+            if not file.is_file():
+                continue
+            content = extract_text(str(file))
+            if content.strip():
+                doc = Document(
+                    tender=tender_id,
+                    title=file.name,
+                    content=content
+                )
+                session.add(doc)
+    session.commit()
+
+    # rebuild FTS index
+    with ENGINE.connect() as conn:
+        conn.execute(text("INSERT INTO documents_fts(documents_fts) VALUES('rebuild')"))
+
+    print("вњ… Ingestion complete.")
+
+if __name__ == "__main__":
+    ingest_all()
+
+
+### --- FILE: D:\legal_ai_agent\ingest_acts.py --- ###
+import os
+import json
+from pathlib import Path
+from datetime import datetime
+
+from db.schema import Session, LegalAct
+
+def ingest_acts(raw_folder="raw_docs/acts"):
+    session = Session()
+    for file in Path(raw_folder).glob("*.json"):
+        data = json.load(open(file, encoding="utf-8"))
+        act = LegalAct(
+            act_id    = data["id"],
+            title     = data["title"],
+            published = datetime.fromisoformat(data["date"]),
+            source    = "rada.gov.ua",
+            content   = data.get("full_text","")
+        )
+        session.merge(act)  # merge С‰РѕР± РѕРЅРѕРІР»СЋРІР°С‚Рё РїСЂРё РїРѕРІС‚РѕСЂРЅРѕРјСѓ Р·Р°РїСѓСЃРєСѓ
+    session.commit()
+    print("вњ… Acts ingested.")
+
+if __name__ == "__main__":
+    ingest_acts()
+
+
+### --- FILE: D:\legal_ai_agent\ingest_consultations.py --- ###
+import os
+import json
+from pathlib import Path
+from datetime import datetime
+
+from db.schema import Session, Consultation
+
+def ingest_consultations(raw_folder="raw_docs/consultations"):
+    session = Session()
+    for file in Path(raw_folder).glob("*.json"):
+        data = json.load(open(file, encoding="utf-8"))
+        rec = Consultation(
+            consult_id   = data["id"],
+            question     = data["question"],
+            answer       = data["answer"],
+            consulted_at = datetime.fromisoformat(data["date"]),
+            source_url   = data.get("url","")
+        )
+        session.merge(rec)
+    session.commit()
+    print("вњ… Consultations ingested.")
+
+if __name__ == "__main__":
+    ingest_consultations()
+
+
+### --- FILE: D:\legal_ai_agent\ingest_decisions.py --- ###
+import os
+from pathlib import Path
+from datetime import datetime
+
+import fitz     # РґР»СЏ РІРёС‚СЏРіСѓ С‚РµРєСЃС‚Сѓ PDF
+
+from db.schema import Session, Decision
+
+def extract_pdf_text(path):
+    text, doc = [], fitz.open(path)
+    for p in doc: text.append(p.get_text())
+    return "\n".join(text)
+
+def ingest_decisions(raw_folder="raw_docs/decisions"):
+    session = Session()
+    for pdf in Path(raw_folder).rglob("*.pdf"):
+        # РїРѕР»СѓРєР°РјРё РІ РЅР°Р·РІС– С„Р°Р№Р»Сѓ РјР°С”РјРѕ decision_id С‚Р° source
+        # РЅР°РїСЂРёРєР»Р°Рґ "amcu_12345.pdf"
+        parts = pdf.stem.split("_",1)
+        source, decision_id = parts if len(parts)==2 else ("unknown", pdf.stem)
+        rec = Decision(
+            decision_id = decision_id,
+            source      = source,
+            date        = datetime.fromtimestamp(pdf.stat().st_mtime),
+            pdf_path    = str(pdf),
+            metadata    = "",  # С‚СѓС‚ РјРѕР¶РЅР° РїСЂРѕС‡РёС‚Р°С‚Рё JSON РїРѕСЂСѓС‡, СЏРєС‰Рѕ С”
+            content     = extract_pdf_text(str(pdf))
+        )
+        session.merge(rec)
+    session.commit()
+    print("вњ… Decisions ingested.")
+
+if __name__ == "__main__":
+    ingest_decisions()
+
+
+### --- FILE: D:\legal_ai_agent\prozorro_loader.py --- ###
+import requests
+import os
+import time
+import re
+import openpyxl
+from typing import Callable, List, Tuple
+
+BASE_URL = "https://public.api.openprocurement.org/api/2.5/tenders"
+SEARCH_API = "https://api.prozorro.gov.ua/tenders.json"
+
+# РЎРµСЃС–СЏ РґР»СЏ РїРѕРІС‚РѕСЂРЅРѕРіРѕ РІРёРєРѕСЂРёСЃС‚Р°РЅРЅСЏ TCP-Р·вЂ™С”РґРЅР°РЅСЊ
+session = requests.Session()
+
+
+def sanitize_filename(name: str) -> str:
+    return re.sub(r'[<>:"/\\|?*]', '_', name)
+
+
+def resolve_tender_id_by_public_number(public_id: str) -> str:
+    """РЁСѓРєР°С”РјРѕ РІРЅСѓС‚СЂС–С€РЅС–Р№ ID С‚РµРЅРґРµСЂСѓ С‡РµСЂРµР· SEARCH_API."""
+    try:
+        resp = session.get(SEARCH_API, params={"tenderID": public_id}, timeout=10)
+        resp.raise_for_status()
+        arr = resp.json().get("data", [])
+        if arr:
+            return arr[0]["id"]
+    except Exception:
+        pass
+    print(f"[err] РўРµРЅРґРµСЂ {public_id} РЅРµ Р·РЅР°Р№РґРµРЅРѕ С‡РµСЂРµР· SEARCH_API.")
+    return None
+
+
+def fetch_with_retry(url: str) -> requests.Response:
+    """GET Р· РµРєСЃРїРѕРЅРµРЅС†С–Р°Р»СЊРЅРёРј Р±РµРє-РѕС„РѕРј Сѓ СЂР°Р·С– 429."""
+    backoffs = [1, 2, 4]
+    for b in backoffs:
+        r = session.get(url, timeout=30)
+        if r.status_code == 429:
+            time.sleep(b)
+            continue
+        r.raise_for_status()
+        return r
+    # С„С–РЅР°Р»СЊРЅР° СЃРїСЂРѕР±Р°
+    r = session.get(url, timeout=30)
+    r.raise_for_status()
+    return r
+
+
+def save_doc(doc: dict, folder: str, logger: Callable[[str], None] = print) -> int:
+    """Р—Р±РµСЂС–РіР°С” РѕРґРёРЅ РґРѕРєСѓРјРµРЅС‚, РїРѕРІРµСЂС‚Р°С” 1 СЏРєС‰Рѕ СѓСЃРїС–С€РЅРѕ, С–РЅР°РєС€Рµ 0."""
+    title = doc.get("title") or f"doc_{int(time.time())}"
+    filename = sanitize_filename(title)
+    url = doc.get("url")
+    if not url:
+        logger(f"[warn] РџСЂРѕРїСѓС‰РµРЅРѕ вЂ“ РЅРµРјР°С” URL: {filename}")
+        return 0
+
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, filename)
+    if os.path.exists(path):
+        logger(f"[skip] РІР¶Рµ С–СЃРЅСѓС”: {filename}")
+        return 0
+
+    try:
+        r = fetch_with_retry(url)
+        with open(path, "wb") as f:
+            f.write(r.content)
+        logger(f"[v] Р·Р°РІР°РЅС‚Р°Р¶РµРЅРѕ: {filename}")
+        return 1
+    except Exception as e:
+        logger(f"[err] РЅРµ РІРґР°Р»РѕСЃСЏ Р·Р°РІР°РЅС‚Р°Р¶РёС‚Рё {filename}: {e}")
+        return 0
+
+
+def save_participants_to_excel(participants: list, folder_path: str):
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "РЈС‡Р°СЃРЅРёРєРё"
+    ws.append(["РќР°Р·РІР°", "Р„Р”Р РџРћРЈ/Р†РґРµРЅС‚РёС„С–РєР°С‚РѕСЂ", "РљСЂР°С—РЅР°", "Р РµРіС–РѕРЅ"])
+    for p in participants:
+        ws.append([p["name"], p["id"], p["country"], p["region"]])
+    wb.save(os.path.join(folder_path, "РЈС‡Р°СЃРЅРёРєРё.xlsx"))
+
+
+def extract_all_docs(item):
+    """Р РµРєСѓСЂСЃРёРІРЅРѕ Р·РЅР°С…РѕРґРёС‚СЊ СѓСЃС– dict С–Р· 'url' С– 'title'."""
+    if isinstance(item, dict):
+        if "url" in item and "title" in item:
+            yield item
+        for v in item.values():
+            yield from extract_all_docs(v)
+    elif isinstance(item, list):
+        for elem in item:
+            yield from extract_all_docs(elem)
+
+
+def download_documents_with_progress(user_input: str,
+                                     progress_bar=None,
+                                     logger: Callable[[str], None] = print) -> int:
+    # 1) Р РѕР·РїС–Р·РЅР°РІР°РЅРЅСЏ РїСѓР±Р»С–С‡РЅРѕРіРѕ РЅРѕРјРµСЂР°
+    if user_input.upper().startswith("UA-"):
+        logger(f"[i] РЁСѓРєР°С”РјРѕ РІРЅСѓС‚СЂС–С€РЅС–Р№ ID Р·Р° РїСѓР±. РЅРѕРјРµСЂРѕРј: {user_input}")
+        tid = resolve_tender_id_by_public_number(user_input)
+        if not tid:
+            logger("[err] РўРµРЅРґРµСЂ РЅРµ Р·РЅР°Р№РґРµРЅРѕ.")
+            return 0
+        user_input = tid
+
+    # 2) РћС‚СЂРёРјСѓС”РјРѕ JSON С‚РµРЅРґРµСЂСѓ
+    logger(f"[i] РћС‚СЂРёРјСѓС”РјРѕ С‚РµРЅРґРµСЂ: {user_input}")
+    try:
+        resp = session.get(f"{BASE_URL}/{user_input}", timeout=10)
+        resp.raise_for_status()
+    except Exception as e:
+        logger(f"[err] РќРµ РІРґР°Р»РѕСЃСЏ РѕС‚СЂРёРјР°С‚Рё С‚РµРЅРґРµСЂ: {e}")
+        return 0
+
+    data = resp.json().get("data", {})
+    public_id = data.get("tenderID", user_input)
+
+    # 3) РЎС‚РІРѕСЂСЋС”РјРѕ РїР°РїРєРё
+    base_dir = os.path.join("downloads", sanitize_filename(public_id))
+    tend_docs = os.path.join(base_dir, "Р”РѕРєСѓРјРµРЅС‚Рё С‚РµРЅРґРµСЂР°")
+    proc_docs = os.path.join(base_dir, "РџСЂРѕС†РµСЃСѓР°Р»СЊРЅС– РґРѕРєСѓРјРµРЅС‚Рё С‚Р° Р°РЅР°Р»С–Р·")
+    os.makedirs(tend_docs, exist_ok=True)
+    os.makedirs(proc_docs, exist_ok=True)
+
+    # Р—Р±РµСЂС–РіР°С”РјРѕ tender.json
+    with open(os.path.join(base_dir, "tender.json"), "w", encoding="utf-8") as f:
+        f.write(resp.text)
+
+    # 4) Р—Р±РёСЂР°С”РјРѕ РІСЃС– РґРѕРєСѓРјРµРЅС‚Рё Сѓ СЃРїРёСЃРѕРє Р·Р°РІРґР°РЅСЊ
+    tasks: List[Tuple[dict, str]] = []
+    seen_urls = set()
+    participants = []
+
+    def add_docs(docs_list, folder):
+        os.makedirs(folder, exist_ok=True)
+        for d in docs_list:
+            url = d.get("url")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                tasks.append((d, folder))
+
+    # 4.1) Р—Р°РіР°Р»СЊРЅС– РґРѕРєСѓРјРµРЅС‚Рё С‚РµРЅРґРµСЂСѓ
+    add_docs(list(extract_all_docs(data.get("documents", []))),
+             os.path.join(tend_docs, "Р—Р°РіР°Р»СЊРЅС– РґРѕРєСѓРјРµРЅС‚Рё"))
+
+    # 4.2) Р”РѕРєСѓРјРµРЅС‚Рё СѓС‡Р°СЃРЅРёРєС–РІ (bids)
+    for bid in data.get("bids", []):
+        tenderer = bid.get("tenderers", [{}])[0]
+        name = tenderer.get("name", "РЈС‡Р°СЃРЅРёРє Р±РµР· РЅР°Р·РІРё")
+        ident = tenderer.get("identifier", {}).get("id", "вЂ”")
+        part_base = os.path.join(tend_docs, sanitize_filename(f"{name}_{ident}"))
+        # СЃС‚РІРѕСЂСЋС”РјРѕ РІСЃС– РїС–РґРїР°РїРєРё СѓС‡Р°СЃРЅРёРєР°
+        for sub in ("documents", "selfEligibleDocuments", "selfQualifiedDocuments",
+                    "requirementResponses", "lotValues"):
+            os.makedirs(os.path.join(part_base, sub), exist_ok=True)
+        # РґРѕРґР°С”РјРѕ РІСЃС– РґРѕРєСѓРјРµРЅС‚Рё СѓС‡Р°СЃРЅРёРєР° Сѓ РІС–РґРїРѕРІС–РґРЅС– РїС–РґРїР°РїРєРё
+        for doc in extract_all_docs(bid):
+            url = doc.get("url")
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                tasks.append((doc, part_base))
+        participants.append({
+            "name": name,
+            "id": ident,
+            "country": tenderer.get("address", {}).get("countryName", "вЂ”"),
+            "region": tenderer.get("address", {}).get("region", "вЂ”"),
+        })
+
+    # 4.3) Р†РЅС€С– СЃРµРєС†С–С— С‚РµРЅРґРµСЂСѓ
+    sections = [
+        ("awards", "РќР°РіРѕСЂРѕРґРё"),
+        ("contracts", "РљРѕРЅС‚СЂР°РєС‚Рё"),
+        ("qualifications", "РљРІР°Р»С–С„С–РєР°С†С–С—"),
+        ("complaints", "РЎРєР°СЂРіРё"),
+        ("cancellations", "РЎРєР°СЃСѓРІР°РЅРЅСЏ"),
+        ("clarifications", "Р РѕР·вЂ™СЏСЃРЅРµРЅРЅСЏ"),
+        ("questions", "РџРёС‚Р°РЅРЅСЏ"),
+    ]
+    for key, folder_name in sections:
+        objs = data.get(key, [])
+        target = os.path.join(tend_docs, folder_name)
+        os.makedirs(target, exist_ok=True)
+        add_docs(list(extract_all_docs(objs)), target)
+        # complaints РІСЃРµСЂРµРґРёРЅС– awards/contracts/qualifications
+        if key in ("awards", "contracts", "qualifications"):
+            for o in objs:
+                add_docs(list(extract_all_docs(o.get("complaints", []))), target)
+
+    # 5) Р—Р±РµСЂС–РіР°С”РјРѕ СЃРїРёСЃРѕРє СѓС‡Р°СЃРЅРёРєС–РІ
+    if participants:
+        save_participants_to_excel(participants, base_dir)
+
+    # 6) РЎС‚РІРѕСЂСЋС”РјРѕ РїР°РїРєРё РґР»СЏ РїСЂРѕС†РµСЃСѓР°Р»СЊРЅРёС… РґРѕРєСѓРјРµРЅС‚С–РІ
+    for sub in ("РІРёРјРѕРіРё", "РїРѕРґР°РЅРЅСЏ РїСЂРѕ РїРѕРїРµСЂРµРґРЅС– РІРёСЃРЅРѕРІРєРё", "РїСЂРѕРµРєС‚ СЂС–С€РµРЅРЅСЏ", "РђРЅР°Р»С–Р·"):
+        os.makedirs(os.path.join(proc_docs, sub), exist_ok=True)
+
+    # 7) РџРѕСЃР»С–РґРѕРІРЅРµ Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ Р· РїСЂРѕРіСЂРµСЃ-Р±Р°СЂРѕРј
+    total = len(tasks)
+    logger(f"[i] Р—Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ {total} С„Р°Р№Р»С–РІ РїРѕ С‡РµСЂР·С–вЂ¦")
+    count = 0
+    for i, (doc, folder) in enumerate(tasks, start=1):
+        count += save_doc(doc, folder, logger)
+        if progress_bar:
+            progress_bar.progress(i / max(total, 1))
+    logger(f"[done] Р—Р°РІРµСЂС€РµРЅРѕ. '{public_id}' вЂ” {count} С„Р°Р№Р»С–РІ Р·Р°РІР°РЅС‚Р°Р¶РµРЅРѕ.")
+    return count
+
+
+### --- FILE: D:\legal_ai_agent\search.py --- ###
+import sys
+from sqlalchemy import text
+from db.schema import Session
+
+def ft_search(section_name: str, fts_table: str, data_table: str, title_col: str, query: str, limit: int):
+    print(f"\n=== {section_name} ===")
+    session = Session()
+    sql = text(f"""
+      SELECT d.id AS id,
+             d.{title_col} AS title,
+             snippet({fts_table}, -1, '<b>','</b>','...',10) AS snippet
+      FROM {fts_table}
+      JOIN {data_table} AS d ON {fts_table}.rowid = d.id
+      WHERE {fts_table} MATCH :q
+      LIMIT :lim
+    """)
+    rows = session.execute(sql, {"q": query, "lim": limit})
+    found = False
+    for r in rows:
+        found = True
+        print(f"{r.id}\t{r.title}\n  вЂ¦{r.snippet}\n")
+    if not found:
+        print("РќС–С‡РѕРіРѕ РЅРµ Р·РЅР°Р№РґРµРЅРѕ.")
+
+def main():
+    if len(sys.argv) < 2:
+        print('Usage: python search.py "query" [limit]')
+        sys.exit(1)
+
+    query = sys.argv[1]
+    limit = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+
+    # 1. РўРµРЅРґРµСЂРё (documents/documents_fts)
+    ft_search(
+        section_name="Tenders",
+        fts_table="documents_fts",
+        data_table="documents",
+        title_col="title",
+        query=query,
+        limit=limit
+    )
+
+    # 2. Р—Р°РєРѕРЅРѕРґР°РІС‡С– Р°РєС‚Рё (legal_acts/legal_acts_fts)
+    ft_search(
+        section_name="Legal Acts",
+        fts_table="legal_acts_fts",
+        data_table="legal_acts",
+        title_col="title",
+        query=query,
+        limit=limit
+    )
+
+    # 3. Р С–С€РµРЅРЅСЏ (decisions/decisions_fts)
+    ft_search(
+        section_name="Decisions",
+        fts_table="decisions_fts",
+        data_table="decisions",
+        title_col="decision_id",
+        query=query,
+        limit=limit
+    )
+
+    # 4. РљРѕРЅСЃСѓР»СЊС‚Р°С†С–С— (consultations/consultations_fts)
+    ft_search(
+        section_name="Consultations",
+        fts_table="consultations_fts",
+        data_table="consultations",
+        title_col="consult_id",
+        query=query,
+        limit=limit
+    )
+
+if __name__ == "__main__":
+    main()
+
+
+### --- FILE: D:\legal_ai_agent\tree.py --- ###
+import os
+
+def tree(dir_path, prefix=""):
+    entries = sorted(os.listdir(dir_path))
+    for index, name in enumerate(entries):
+        path = os.path.join(dir_path, name)
+        connector = "в””в”Ђв”Ђ " if index == len(entries)-1 else "в”њв”Ђв”Ђ "
+        print(prefix + connector + name + ("/" if os.path.isdir(path) else ""))
+        if os.path.isdir(path):
+            extension = "    " if index == len(entries)-1 else "в”‚   "
+            tree(path, prefix + extension)
+
+print(os.path.basename(os.getcwd()) + "/")
+tree(".")
+
+

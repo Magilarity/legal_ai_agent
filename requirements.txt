@@ -1,0 +1,11 @@
+sqlalchemy
+pymupdf
+python-docx
+openpyxl
+requests
+pytest
+python-dotenv
+flake8
+black
+mypy
+prometheus-client
