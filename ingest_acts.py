@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -17,7 +16,7 @@ def ingest_acts(raw_folder="raw_docs/acts"):
             source="rada.gov.ua",
             content=data.get("full_text", ""),
         )
-        session.merge(act)  # merge щоб оновлювати при повторному запуску
+        session.merge(act)
     session.commit()
     print("✅ Acts ingested.")
 

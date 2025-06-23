@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import docx  # python-docx
@@ -17,14 +16,13 @@ def extract_text(path: str) -> str:
                 for page in pdf:
                     text_chunks.append(page.get_text())
             return "\n".join(text_chunks)
-        elif ext in (".docx",):
+        elif ext == ".docx":
             doc = docx.Document(path)
             return "\n".join(p.text for p in doc.paragraphs)
         else:
-            # для інших форматів можна додати логіки, поки – пустий рядок
             return ""
     except Exception as e:
-        print(f"[warn] помилка витягу тексту з {path}: {e}")
+        print(f"[warn] помилка читання тексту з {path}: {e}")
         return ""
 
 
@@ -42,11 +40,8 @@ def ingest_all(downloads_folder="downloads"):
                 doc = Document(tender=tender_id, title=file.name, content=content)
                 session.add(doc)
     session.commit()
-
-    # rebuild FTS index
     with ENGINE.connect() as conn:
         conn.execute(text("INSERT INTO documents_fts(documents_fts) VALUES('rebuild')"))
-
     print("✅ Ingestion complete.")
 
 

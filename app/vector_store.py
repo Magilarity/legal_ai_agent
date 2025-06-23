@@ -10,5 +10,5 @@ def create_index(embeddings):
 
 
 def search_index(index, query_vector, top_k=3):
-    D, I = index.search(np.array([query_vector]).astype("float32"), top_k)
-    return I[0]
+    distances, indices = index.search(np.array([query_vector]).astype("float32"), top_k)
+    return indices[0]

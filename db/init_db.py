@@ -1,5 +1,3 @@
-from db.schema import ENGINE, Base
-
 from .schema import ENGINE, Base
 
 
