@@ -1,6 +1,16 @@
 import os
-from app import document_loader, text_splitter, embedder, vector_store, llm_agent, export_utils, sign_extractor
+
 import prozorro_loader
+from app import (
+    document_loader,
+    embedder,
+    export_utils,
+    llm_agent,
+    sign_extractor,
+    text_splitter,
+    vector_store,
+)
+
 
 def analyze_tender_by_id(tender_id: str) -> str:
     temp_dir = "documents"
@@ -20,7 +30,9 @@ def analyze_tender_by_id(tender_id: str) -> str:
 
             chunks = text_splitter.split_text(text)
             if not chunks:
-                result_texts.append(f"📄 {filename}\n[WARNING] Не вдалося розбити текст.")
+                result_texts.append(
+                    f"📄 {filename}\n[WARNING] Не вдалося розбити текст."
+                )
                 continue
 
             embeddings = embedder.embed_chunks(chunks)
@@ -33,11 +45,15 @@ def analyze_tender_by_id(tender_id: str) -> str:
             # Фільтруємо невірні індекси
             valid = [chunks[i] for i in top_indices if 0 <= i < len(chunks)]
             if not valid:
-                result_texts.append(f"📄 {filename}\n[WARNING] Нема релевантних фрагментів.")
+                result_texts.append(
+                    f"📄 {filename}\n[WARNING] Нема релевантних фрагментів."
+                )
                 continue
 
             context = "\n---\n".join(valid)
-            answer = llm_agent.generate_answer(context, f"Правовий зміст документа {filename}:")
+            answer = llm_agent.generate_answer(
+                context, f"Правовий зміст документа {filename}:"
+            )
             # Якщо generate_answer повернув помилку — показуємо її
             if answer.startswith("[ERROR]"):
                 result_texts.append(f"📄 {filename}\n{answer}")

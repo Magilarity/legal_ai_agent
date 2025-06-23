@@ -1,11 +1,22 @@
 import sys
+
 from sqlalchemy import text
+
 from db.schema import Session
 
-def ft_search(section_name: str, fts_table: str, data_table: str, title_col: str, query: str, limit: int):
+
+def ft_search(
+    section_name: str,
+    fts_table: str,
+    data_table: str,
+    title_col: str,
+    query: str,
+    limit: int,
+):
     print(f"\n=== {section_name} ===")
     session = Session()
-    sql = text(f"""
+    sql = text(
+        f"""
       SELECT d.id AS id,
              d.{title_col} AS title,
              snippet({fts_table}, -1, '<b>','</b>','...',10) AS snippet
@@ -13,7 +24,8 @@ def ft_search(section_name: str, fts_table: str, data_table: str, title_col: str
       JOIN {data_table} AS d ON {fts_table}.rowid = d.id
       WHERE {fts_table} MATCH :q
       LIMIT :lim
-    """)
+    """
+    )
     rows = session.execute(sql, {"q": query, "lim": limit})
     found = False
     for r in rows:
@@ -21,6 +33,7 @@ def ft_search(section_name: str, fts_table: str, data_table: str, title_col: str
         print(f"{r.id}\t{r.title}\n  …{r.snippet}\n")
     if not found:
         print("Нічого не знайдено.")
+
 
 def main():
     if len(sys.argv) < 2:
@@ -37,7 +50,7 @@ def main():
         data_table="documents",
         title_col="title",
         query=query,
-        limit=limit
+        limit=limit,
     )
 
     # 2. Законодавчі акти (legal_acts/legal_acts_fts)
@@ -47,7 +60,7 @@ def main():
         data_table="legal_acts",
         title_col="title",
         query=query,
-        limit=limit
+        limit=limit,
     )
 
     # 3. Рішення (decisions/decisions_fts)
@@ -57,7 +70,7 @@ def main():
         data_table="decisions",
         title_col="decision_id",
         query=query,
-        limit=limit
+        limit=limit,
     )
 
     # 4. Консультації (consultations/consultations_fts)
@@ -67,8 +80,9 @@ def main():
         data_table="consultations",
         title_col="consult_id",
         query=query,
-        limit=limit
+        limit=limit,
     )
+
 
 if __name__ == "__main__":
     main()

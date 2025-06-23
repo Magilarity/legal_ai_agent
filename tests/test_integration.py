@@ -1,5 +1,6 @@
 # tests/test_integration.py
 
+
 def test_end_to_end(tmp_path, loader_module, splitter_module):
     # End-to-end example: load, split, and reconstruct a document
     sample = "End to end test of the legal AI agent."

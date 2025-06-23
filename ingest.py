@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
 
+import docx  # python-docx
+import fitz  # PyMuPDF
 from sqlalchemy import text
-from db.schema import Session, Document, ENGINE
 
-import fitz       # PyMuPDF
-import docx       # python-docx
+from db.schema import ENGINE, Document, Session
+
 
 def extract_text(path: str) -> str:
     ext = Path(path).suffix.lower()
@@ -26,6 +27,7 @@ def extract_text(path: str) -> str:
         print(f"[warn] помилка витягу тексту з {path}: {e}")
         return ""
 
+
 def ingest_all(downloads_folder="downloads"):
     session = Session()
     for tender_dir in Path(downloads_folder).iterdir():
@@ -37,11 +39,7 @@ def ingest_all(downloads_folder="downloads"):
                 continue
             content = extract_text(str(file))
             if content.strip():
-                doc = Document(
-                    tender=tender_id,
-                    title=file.name,
-                    content=content
-                )
+                doc = Document(tender=tender_id, title=file.name, content=content)
                 session.add(doc)
     session.commit()
 
@@ -50,6 +48,7 @@ def ingest_all(downloads_folder="downloads"):
         conn.execute(text("INSERT INTO documents_fts(documents_fts) VALUES('rebuild')"))
 
     print("✅ Ingestion complete.")
+
 
 if __name__ == "__main__":
     ingest_all()

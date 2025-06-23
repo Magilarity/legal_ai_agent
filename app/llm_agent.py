@@ -1,9 +1,9 @@
+import logging
 import os
 import time
-import logging
 
-from dotenv import load_dotenv  # <--- Додаємо
 import openai
+from dotenv import load_dotenv  # <--- Додаємо
 
 # Завантажуємо .env з кореня проекту
 load_dotenv()
@@ -14,32 +14,25 @@ MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler()],
 )
 
 
 def generate_answer(
-    context: str,
-    question: str,
-    max_retries: int = 3,
-    backoff_factor: float = 2.0
+    context: str, question: str, max_retries: int = 3, backoff_factor: float = 2.0
 ) -> str:
     """
     Генерує відповідь через OpenAI Chat API (v1.0+)
     із автоматичним back-off у разі помилок.
     """
-    prompt = (
-        f"Контекст:\n{context}\n\n"
-        f"Питання:\n{question}\n\n"
-        "Відповідь:"
-    )
+    prompt = f"Контекст:\n{context}\n\n" f"Питання:\n{question}\n\n" "Відповідь:"
 
     for attempt in range(1, max_retries + 1):
         try:
             response = openai.chat.completions.create(
                 model=MODEL,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
+                temperature=0.3,
             )
             return response.choices[0].message.content.strip()
 

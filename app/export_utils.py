@@ -1,13 +1,14 @@
-import os
 import logging
+import os
+
 from docx import Document
+from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
 
 # Логування без “детача” stdout
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 # Зареєструйте шрифт DejaVu Sans (підтримка кирилиці)
 # Покладіть файл DejaVuSans.ttf у корінь проєкту
@@ -19,7 +20,12 @@ else:
     pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
 
 
-def save_analysis_to_docx(tender_id: str, analysis_text: str, signatures: list = None, output_dir: str = "exports") -> str:
+def save_analysis_to_docx(
+    tender_id: str,
+    analysis_text: str,
+    signatures: list = None,
+    output_dir: str = "exports",
+) -> str:
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, f"{tender_id}_аналіз.docx")
 
@@ -42,7 +48,12 @@ def save_analysis_to_docx(tender_id: str, analysis_text: str, signatures: list =
     return file_path
 
 
-def save_analysis_to_pdf(tender_id: str, analysis_text: str, signatures: list = None, output_dir: str = "exports") -> str:
+def save_analysis_to_pdf(
+    tender_id: str,
+    analysis_text: str,
+    signatures: list = None,
+    output_dir: str = "exports",
+) -> str:
     """
     Генерує PDF-звіт з кирилицею через ReportLab.
     """

@@ -1,13 +1,15 @@
-import os
 import logging
+import os
+
 import fitz  # PyMuPDF
-from docx import Document as DocxDocument
-from striprtf.striprtf import rtf_to_text
-from PIL import Image
 import pytesseract
+from docx import Document as DocxDocument
+from PIL import Image
+from striprtf.striprtf import rtf_to_text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def extract_text_from_file(path: str) -> str:
     """

@@ -1,0 +1,15 @@
+[flake8]
+max-line-length = 88
+
+# Ігноруємо помилки, які конфліктують з автозаправкою Black
+extend-ignore =
+    E203
+    W503
+
+# Не перевіряти в цих папках і файлах
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv

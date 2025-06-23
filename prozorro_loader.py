@@ -1,9 +1,10 @@
-import requests
 import os
-import time
 import re
-import openpyxl
+import time
 from typing import Callable, List, Tuple
+
+import openpyxl
+import requests
 
 BASE_URL = "https://public.api.openprocurement.org/api/2.5/tenders"
 SEARCH_API = "https://api.prozorro.gov.ua/tenders.json"
@@ -13,7 +14,7 @@ session = requests.Session()
 
 
 def sanitize_filename(name: str) -> str:
-    return re.sub(r'[<>:"/\\|?*]', '_', name)
+    return re.sub(r'[<>:"/\\|?*]', "_", name)
 
 
 def resolve_tender_id_by_public_number(public_id: str) -> str:
@@ -94,9 +95,9 @@ def extract_all_docs(item):
             yield from extract_all_docs(elem)
 
 
-def download_documents_with_progress(user_input: str,
-                                     progress_bar=None,
-                                     logger: Callable[[str], None] = print) -> int:
+def download_documents_with_progress(
+    user_input: str, progress_bar=None, logger: Callable[[str], None] = print
+) -> int:
     # 1) Розпізнавання публічного номера
     if user_input.upper().startswith("UA-"):
         logger(f"[i] Шукаємо внутрішній ID за пуб. номером: {user_input}")
@@ -143,8 +144,10 @@ def download_documents_with_progress(user_input: str,
                 tasks.append((d, folder))
 
     # 4.1) Загальні документи тендеру
-    add_docs(list(extract_all_docs(data.get("documents", []))),
-             os.path.join(tend_docs, "Загальні документи"))
+    add_docs(
+        list(extract_all_docs(data.get("documents", []))),
+        os.path.join(tend_docs, "Загальні документи"),
+    )
 
     # 4.2) Документи учасників (bids)
     for bid in data.get("bids", []):
@@ -153,8 +156,13 @@ def download_documents_with_progress(user_input: str,
         ident = tenderer.get("identifier", {}).get("id", "—")
         part_base = os.path.join(tend_docs, sanitize_filename(f"{name}_{ident}"))
         # створюємо всі підпапки учасника
-        for sub in ("documents", "selfEligibleDocuments", "selfQualifiedDocuments",
-                    "requirementResponses", "lotValues"):
+        for sub in (
+            "documents",
+            "selfEligibleDocuments",
+            "selfQualifiedDocuments",
+            "requirementResponses",
+            "lotValues",
+        ):
             os.makedirs(os.path.join(part_base, sub), exist_ok=True)
         # додаємо всі документи учасника у відповідні підпапки
         for doc in extract_all_docs(bid):
@@ -162,12 +170,14 @@ def download_documents_with_progress(user_input: str,
             if url and url not in seen_urls:
                 seen_urls.add(url)
                 tasks.append((doc, part_base))
-        participants.append({
-            "name": name,
-            "id": ident,
-            "country": tenderer.get("address", {}).get("countryName", "—"),
-            "region": tenderer.get("address", {}).get("region", "—"),
-        })
+        participants.append(
+            {
+                "name": name,
+                "id": ident,
+                "country": tenderer.get("address", {}).get("countryName", "—"),
+                "region": tenderer.get("address", {}).get("region", "—"),
+            }
+        )
 
     # 4.3) Інші секції тендеру
     sections = [

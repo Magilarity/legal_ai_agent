@@ -1,7 +1,8 @@
-import streamlit as st
 import os
-import time
 import sys
+import time
+
+import streamlit as st
 
 # Додаємо кореневу директорію до шляху імпорту
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -17,13 +18,15 @@ except ImportError:
 st.set_page_config(page_title="Magilarity Legal Agent", layout="wide")
 st.title("🤖 Magilarity Legal Agent")
 
-st.markdown("""
+st.markdown(
+    """
 ### Інструменти:
 - **Завантажити тендер** — введіть номер тендеру або ID та отримаєте структуру документів
 - **Аналіз** — (майбутній функціонал)
 - **Перевірка підписів** — зчитує `.p7s` та створює звіт `Підписи.xlsx`
 - **Відкрити документи тендеру** — відкриває останній завантажений тендер у файловій системі
-""")
+"""
+)
 
 # Введення
 input_id = st.text_input("Введіть публічний номер або ID тендеру")
@@ -45,11 +48,15 @@ if download_triggered and input_id:
             log_area.text(msg)
 
         start_time = time.time()
-        count = download_documents_with_progress(input_id, progress_bar, streamlit_logger)
+        count = download_documents_with_progress(
+            input_id, progress_bar, streamlit_logger
+        )
         end_time = time.time()
 
         if count > 0:
-            st.success(f"✅ Завантажено {count} файлів за {end_time - start_time:.2f} сек")
+            st.success(
+                f"✅ Завантажено {count} файлів за {end_time - start_time:.2f} сек"
+            )
         else:
             st.error("❌ Не вдалося завантажити документи")
 
@@ -59,7 +66,11 @@ if verify_triggered:
         st.warning("Функціонал перевірки підписів не реалізовано.")
     else:
         folder_root = "downloads"
-        dirs = [d for d in os.listdir(folder_root) if os.path.isdir(os.path.join(folder_root, d))]
+        dirs = [
+            d
+            for d in os.listdir(folder_root)
+            if os.path.isdir(os.path.join(folder_root, d))
+        ]
         if not dirs:
             st.warning("Спочатку завантажте тендер")
         else:
@@ -71,7 +82,11 @@ if verify_triggered:
 # Відкрити документи
 if open_docs_triggered:
     folder_root = "downloads"
-    dirs = [d for d in os.listdir(folder_root) if os.path.isdir(os.path.join(folder_root, d))]
+    dirs = [
+        d
+        for d in os.listdir(folder_root)
+        if os.path.isdir(os.path.join(folder_root, d))
+    ]
     if not dirs:
         st.warning("Немає завантажених тендерів")
     else:

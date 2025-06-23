@@ -1,1 +1,1 @@
-from .schema import Base, ENGINE, Session, Document, Decision, Consultation
+from .schema import ENGINE, Base, Consultation, Decision, Document, Session
