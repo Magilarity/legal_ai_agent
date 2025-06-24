@@ -1,5 +1,6 @@
 import os
 
+
 def tree(dir_path: str, prefix: str = "") -> None:
     entries = sorted(os.listdir(dir_path))
     for index, entry in enumerate(entries):

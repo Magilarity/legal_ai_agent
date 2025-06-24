@@ -1,6 +1,7 @@
 from asn1crypto import cms, pem
 from typing import List, Dict
 
+
 def extract_signature_info(p7s_path: str) -> List[Dict[str, str]]:
     try:
         with open(p7s_path, "rb") as f:
@@ -18,10 +19,7 @@ def extract_signature_info(p7s_path: str) -> List[Dict[str, str]]:
                     signer_cert = cert
                     break
             issuer = signer_cert.chosen.issuer.human_friendly if signer_cert else ""
-            result.append({
-                "issuer": issuer,
-                "serial_number": str(serial)
-            })
+            result.append({"issuer": issuer, "serial_number": str(serial)})
         return result
     except Exception:
         return []

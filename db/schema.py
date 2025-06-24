@@ -5,10 +5,12 @@ from sqlalchemy.orm.decl_api import DeclarativeMeta
 
 Base: DeclarativeMeta = declarative_base()
 
+
 class Document(Base):
-    __tablename__ = 'documents'
+    __tablename__ = "documents"
     id = Column(Integer, primary_key=True)
     content = Column(String)
+
 
 # Заглушки для типізації
 ENGINE: object

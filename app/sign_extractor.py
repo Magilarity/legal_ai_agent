@@ -6,6 +6,7 @@ from typing import List, Dict
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
+
 def extract_signature_info(file_path: str) -> List[Dict[str, str]]:
     """
     Повертає список словників із полями issuer/serial_number.
@@ -27,10 +28,7 @@ def extract_signature_info(file_path: str) -> List[Dict[str, str]]:
                     signer_cert = cert
                     break
             issuer = signer_cert.chosen.issuer.human_friendly if signer_cert else ""
-            result.append({
-                "issuer": issuer,
-                "serial_number": str(serial)
-            })
+            result.append({"issuer": issuer, "serial_number": str(serial)})
         return result
     except Exception:
         logging.error("Failed to parse signature file")

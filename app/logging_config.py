@@ -13,6 +13,7 @@ console_handler.setFormatter(formatter)
 file_handler = RotatingFileHandler("app.log", maxBytes=10 * 1024 * 1024, backupCount=5)
 file_handler.setFormatter(formatter)
 
+
 def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
     if not logger.handlers:
