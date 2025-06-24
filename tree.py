@@ -1,16 +1,11 @@
 import os
 
-
-def tree(dir_path, prefix=""):
+def tree(dir_path: str, prefix: str = "") -> None:
     entries = sorted(os.listdir(dir_path))
-    for index, name in enumerate(entries):
-        path = os.path.join(dir_path, name)
+    for index, entry in enumerate(entries):
         connector = "└── " if index == len(entries) - 1 else "├── "
-        print(prefix + connector + name + ("/" if os.path.isdir(path) else ""))
+        print(prefix + connector + entry)
+        new_prefix = prefix + ("    " if index == len(entries) - 1 else "│   ")
+        path = os.path.join(dir_path, entry)
         if os.path.isdir(path):
-            extension = "    " if index == len(entries) - 1 else "│   "
-            tree(path, prefix + extension)
-
-
-print(os.path.basename(os.getcwd()) + "/")
-tree(".")
+            tree(path, new_prefix)

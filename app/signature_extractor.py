@@ -1,38 +1,27 @@
-import io
-import logging
-import sys
+from asn1crypto import cms, pem
+from typing import List, Dict
 
-import asn1crypto.cms
-import asn1crypto.pem
-
-# Забезпечити правильне виведення у консоль з UTF-8
-sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding="utf-8")
-sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding="utf-8")
-
-logging.basicConfig(level=logging.INFO)
-
-
-def extract_signature_info(file_path):
+def extract_signature_info(p7s_path: str) -> List[Dict[str, str]]:
     try:
-        with open(file_path, "rb") as f:
-            raw_data = f.read()
-
-        if asn1crypto.pem.detect(raw_data):
-            _, _, raw_data = asn1crypto.pem.unarmor(raw_data)
-
-        content_info = asn1crypto.cms.ContentInfo.load(raw_data)
+        with open(p7s_path, "rb") as f:
+            content = f.read()
+        content_info = cms.ContentInfo.load(content)
         signer_infos = content_info["content"]["signer_infos"]
-
-        result = []
+        certs = content_info["content"]["certificates"]
+        result: List[Dict[str, str]] = []
         for signer in signer_infos:
             sid = signer["sid"]
-            signer_info = {
-                "issuer": sid.chosen["issuer"].human_friendly,
-                "serial_number": sid.chosen["serial_number"].native,
-            }
-            result.append(signer_info)
-
+            serial = sid.chosen["serial_number"].native
+            signer_cert = None
+            for cert in certs:
+                if cert.chosen.serial_number == serial:
+                    signer_cert = cert
+                    break
+            issuer = signer_cert.chosen.issuer.human_friendly if signer_cert else ""
+            result.append({
+                "issuer": issuer,
+                "serial_number": str(serial)
+            })
         return result
-    except Exception as e:
-        logging.error(f"Помилка при витягуванні підпису: {e}")
-        return [{"error": str(e)}]
+    except Exception:
+        return []

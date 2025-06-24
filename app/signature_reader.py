@@ -1,7 +1,7 @@
 from asn1crypto import cms, x509
+from typing import List, Dict
 
-
-def extract_signature_info(p7s_path):
+def extract_signature_info(p7s_path: str) -> List[Dict[str, str]]:
     try:
         with open(p7s_path, "rb") as f:
             content = f.read()
@@ -14,19 +14,14 @@ def extract_signature_info(p7s_path):
             serial = sid.chosen["serial_number"].native
             signer_cert = None
             for cert in certs:
-                cert = x509.Certificate.load(cert.dump())
-                if cert.serial_number == serial:
+                if cert.chosen.serial_number == serial:
                     signer_cert = cert
                     break
-            if signer_cert:
-                subject = signer_cert.subject.native
-                result.append(
-                    {
-                        "ПІБ": subject.get("common_name", "невідомо"),
-                        "Організація": subject.get("organization_name", "невідомо"),
-                        "Серійний номер": signer_cert.serial_number,
-                    }
-                )
+            issuer = signer_cert.chosen.issuer.human_friendly if signer_cert else ""
+            result.append({
+                "issuer": issuer,
+                "serial_number": str(serial)
+            })
         return result
-    except Exception as e:
-        return [{"Помилка": str(e)}]
+    except Exception:
+        return []
