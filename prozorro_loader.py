@@ -1,14 +1,15 @@
-from typing import Optional, Any
+# mypy: disable-error-code="import-untyped"
 import openpyxl
 import requests
-
+from typing import Optional, Any
 
 def download_documents_with_progress(
-    tender_id: str, progress_bar: Optional[Any], logger: Optional[Any]
+    tender_id: str,
+    progress_bar: Optional[Any],
+    logger: Optional[Any],
 ) -> int:
     # Завантаження документів з відображенням прогресу (умовно)
     return 0
-
 
 def download_documents(tender_id: str) -> Optional[str]:
     # Просте завантаження документів (умовно)
@@ -16,7 +17,6 @@ def download_documents(tender_id: str) -> Optional[str]:
     if error:
         return None
     return "downloads/123"
-
 
 def process_sheet(ws: Optional[Any]) -> None:
     assert ws is not None
