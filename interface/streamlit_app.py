@@ -1,7 +1,9 @@
 import os
 import time
+
 import streamlit as st
-from prometheus_client import start_http_server, Counter, Histogram
+from prometheus_client import Counter, Histogram, start_http_server
+
 import prozorro_loader
 
 # Налаштування сторінки Streamlit (UI)
@@ -11,13 +13,13 @@ st.set_page_config(page_title="Magilarity Legal Agent", layout="wide")
 REQUEST_COUNT = Counter(
     "legal_ai_agent_requests_total",
     "Кількість запитів до Legal AI Agent через Streamlit UI",
-    ["action"]
+    ["action"],
 )
 
 REQUEST_LATENCY = Histogram(
     "legal_ai_agent_request_latency_seconds",
     "Час обробки запиту до Legal AI Agent через Streamlit UI",
-    ["action"]
+    ["action"],
 )
 # ───────────────────────────────────────────────────────────────────────────────
 
@@ -25,7 +27,9 @@ REQUEST_LATENCY = Histogram(
 print("[METRICS] Starting Prometheus metrics server on 0.0.0.0:8001")
 start_http_server(8001, addr="0.0.0.0")
 # Відобразити посилання у UI
-st.write("📊 Prometheus metrics available at http://localhost:8001/metrics")
+st.write(
+    "📊 Prometheus metrics available at http://localhost:8001/metrics"
+)
 # ───────────────────────────────────────────────────────────────────────────────
 
 # ─── Інтерфейс Streamlit (UI) ────────────────────────────────────────────────────
@@ -58,4 +62,3 @@ if analyze:
 # Footer with metrics link
 st.markdown("---")
 st.write("Metrics endpoint available at: http://localhost:8001/metrics")
-# ───────────────────────────────────────────────────────────────────────────────
