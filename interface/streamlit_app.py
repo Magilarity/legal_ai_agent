@@ -27,9 +27,7 @@ REQUEST_LATENCY = Histogram(
 print("[METRICS] Starting Prometheus metrics server on 0.0.0.0:8001")
 start_http_server(8001, addr="0.0.0.0")
 # Відобразити посилання у UI
-st.write(
-    "📊 Prometheus metrics available at http://localhost:8001/metrics"
-)
+st.write("📊 Prometheus metrics available at http://localhost:8001/metrics")
 # ───────────────────────────────────────────────────────────────────────────────
 
 # ─── Інтерфейс Streamlit (UI) ────────────────────────────────────────────────────
