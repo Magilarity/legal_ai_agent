@@ -8,4 +8,5 @@ python-dotenv
 flake8
 black
 mypy
+streamlit
 prometheus-client

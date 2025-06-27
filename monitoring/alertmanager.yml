@@ -1,12 +1,15 @@
+# legal_ai_agent/monitoring/alertmanager.yml
+
 global:
   resolve_timeout: 5m
 
 route:
-  receiver: 'slack-notifications'
+  receiver: 'slack-alerts'
+  # за потреби можна додати group_by, group_wait, group_interval тощо
 
 receivers:
-- name: 'slack-notifications'
-  slack_configs:
-  - api_url: '{{ slack_api_url }}'
-    channel: '#alerts'
-    send_resolved: true
+  - name: 'slack-alerts'
+    slack_configs:
+      - api_url: '${SLACK_API_URL}'
+        channel: '#alerts'
+        send_resolved: true

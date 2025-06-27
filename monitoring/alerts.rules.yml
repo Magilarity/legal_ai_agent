@@ -1,0 +1,13 @@
+groups:
+  - name: LegalAgentAlerts
+    rules:
+      - alert: HighRequestRate
+        expr: increase(legal_ai_agent_requests_total[5m]) > 50
+        for: 2m
+        annotations:
+          summary: "Більше 50 запитів за 5 хвилин"
+      - alert: SlowResponse
+        expr: histogram_quantile(0.95, sum(rate(legal_ai_agent_request_latency_seconds_bucket[5m])) by (le)) > 2
+        for: 2m
+        annotations:
+          summary: "95-й процентиль часу відповіді > 2s"
