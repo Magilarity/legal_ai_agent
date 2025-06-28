@@ -22,9 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # основні залежності
           pip install -r requirements.txt
-          # інструменти для CI
           pip install flake8 black mypy pytest python-dotenv prometheus-client
 
       - name: Lint with flake8
@@ -55,12 +53,19 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
+        id: build-image
         run: |
-          IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/legal_ai_agent:${{ github.sha }}
-          docker build -t $IMAGE_NAME .
-          docker tag $IMAGE_NAME ${{ secrets.DOCKERHUB_USERNAME }}/legal_ai_agent:latest
+          IMAGE_SHA_TAG=${{ secrets.DOCKERHUB_USERNAME }}/legal_ai_agent:${{ github.sha }}
+          IMAGE_LATEST_TAG=${{ secrets.DOCKERHUB_USERNAME }}/legal_ai_agent:latest
+
+          docker build -t $IMAGE_SHA_TAG .
+          docker tag $IMAGE_SHA_TAG $IMAGE_LATEST_TAG
+
+          # Зберігаємо в середовище для наступного кроку
+          echo "IMAGE_SHA_TAG=$IMAGE_SHA_TAG" >> $GITHUB_ENV
+          echo "IMAGE_LATEST_TAG=$IMAGE_LATEST_TAG" >> $GITHUB_ENV
 
       - name: Push to Docker Hub
         run: |
-          docker push $IMAGE_NAME
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/legal_ai_agent:latest
+          docker push $IMAGE_SHA_TAG
+          docker push $IMAGE_LATEST_TAG
