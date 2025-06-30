@@ -1,15 +1,15 @@
 # db/schema.py
 
 import os
-from dotenv import load_dotenv           # <<< ДОДАЛИ
+from dotenv import load_dotenv
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, DeclarativeMeta
 
-# Завантажуємо .env з кореня проєкту
+# читаємо .env
 load_dotenv()
 
-# Базовий клас
 Base: DeclarativeMeta = declarative_base()
 
 
@@ -40,12 +40,21 @@ class Decision(Base):
     content = Column(String)
 
 
-# Тепер гарантовано беремо або з .env, або дефолт
-raw_url = os.getenv("DATABASE_URL")
-DATABASE_URL = raw_url if raw_url and raw_url.strip() else "sqlite:///local.db"
+# читаємо URL
+raw_url = os.getenv("DATABASE_URL", "").strip()
+DATABASE_URL = raw_url if raw_url else "sqlite:///local.db"
 
-# Створюємо engine
-engine = create_engine(DATABASE_URL, echo=False)
+# спочатку пробуємо підключитися до PostgreSQL
+try:
+    engine = create_engine(DATABASE_URL, echo=False)
+    # тестове підключення
+    with engine.connect():
+        pass
+except OperationalError:
+    # якщо не вдається — падаємо на SQLite
+    print(f"⚠️ Не можу підключитися до {DATABASE_URL}, використовую SQLite fallback.")
+    DATABASE_URL = "sqlite:///local.db"
+    engine = create_engine(DATABASE_URL, echo=False)
 
-# Фабрика сесій
+# фабрика сесій
 Session = sessionmaker(bind=engine)
