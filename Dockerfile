@@ -1,19 +1,25 @@
+# Dockerfile
 FROM python:3.13-slim
 
 WORKDIR /app
 
-# 1) Встановлюємо залежності
+# (Опціонально) системні утиліти для діагностики
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl procps dos2unix && \
+    rm -rf /var/lib/apt/lists/*
+
+# Встановлюємо залежності Python
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 2) Копіюємо весь код проекту
+# Копіюємо весь код проєкту
 COPY . .
+
+# Перетворимо стартовий скрипт у Unix-формат і зробимо виконуваним
+RUN dos2unix start.sh && \
+    chmod +x start.sh
 
 ENV PYTHONUNBUFFERED=1
 
-# 3) Копіюємо та робимо виконуваним наш скрипт запуску
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
-# 4) За замовчуванням запускаємо саме його
-CMD ["/app/start.sh"]
+# За замовчуванням піднімаємо спершу Prometheus HTTP-сервер метрик, а потім Streamlit UI
+CMD ["./start.sh"]

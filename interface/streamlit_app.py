@@ -1,8 +1,12 @@
 import os
+import sys
 import time
 
+# Додаємо кореневу директорію проєкту в sys.path, щоб імпорт prozorro_loader працював
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
-from prometheus_client import Counter, Histogram, start_http_server
+from prometheus_client import Counter, Histogram
 
 import prozorro_loader
 
@@ -21,42 +25,40 @@ REQUEST_LATENCY = Histogram(
     "Час обробки запиту до Legal AI Agent через Streamlit UI",
     ["action"],
 )
-# ───────────────────────────────────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────────
 
-# ─── Старт HTTP-сервера метрик ───────────────────────────────────────────────────
-print("[METRICS] Starting Prometheus metrics server on 0.0.0.0:8001")
-start_http_server(8001, addr="0.0.0.0")
-# Відобразити посилання у UI
-st.write("📊 Prometheus metrics available at http://localhost:8001/metrics")
-# ───────────────────────────────────────────────────────────────────────────────
+st.title("🔎 Magilarity Legal AI Agent")
 
-# ─── Інтерфейс Streamlit (UI) ────────────────────────────────────────────────────
-st.title("Legal AI Agent")
+# Бічна панель для введення параметрів
+def load_sidebar():
+    with st.sidebar:
+        st.header("Тендер для аналізу")
+        tid = st.text_input("Enter Tender ID:")
+        run = st.button("Analyze Tender")
+    return tid, run
 
-# Введення Tender ID
-with st.sidebar:
-    st.header("Тендер для аналізу")
-    tender_id = st.text_input("Enter Tender ID:")
-    analyze = st.button("Analyze Tender")
+tender_id, analyze = load_sidebar()
 
+# Основна панель — результати
 if analyze:
-    if tender_id:
+    if not tender_id:
+        st.warning("Будь ласка, введіть дійсний Tender ID перед аналізом.")
+    else:
         action = "analyze_tender"
         REQUEST_COUNT.labels(action=action).inc()
         start_ts = time.time()
 
-        st.info(f"Analyzing tender: {tender_id}...")
+        st.info(f"🔄 Аналіз тендеру: `{tender_id}`…")
         try:
             result = prozorro_loader.download_and_analyze(tender_id)
             elapsed = time.time() - start_ts
             REQUEST_LATENCY.labels(action=action).observe(elapsed)
-            st.success("Analysis complete!")
+
+            st.success("✅ Аналіз завершено!")
             st.write(result)
         except Exception as e:
-            st.error(f"Error during analysis: {e}")
-    else:
-        st.warning("Please enter a valid Tender ID before analyzing.")
+            st.error(f"❌ Помилка під час аналізу: {e}")
 
-# Footer with metrics link
+# Футер із посиланням на метрики (HTTP-сервер метрик запускається через start.sh)
 st.markdown("---")
-st.write("Metrics endpoint available at: http://localhost:8001/metrics")
+st.write("📊 **Metrics endpoint:** [http://localhost:8001/metrics](http://localhost:8001/metrics)")

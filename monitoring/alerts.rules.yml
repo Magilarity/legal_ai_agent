@@ -4,10 +4,25 @@ groups:
       - alert: HighRequestRate
         expr: increase(legal_ai_agent_requests_total[5m]) > 50
         for: 2m
+        labels:
+          severity: warning
         annotations:
-          summary: "Більше 50 запитів за 5 хвилин"
+          summary: "Високий рівень запитів"
+          description: >-
+            За останні 5 хвилин зафіксовано {{ $value }} запитів до Legal AI Agent,
+            що перевищує поріг у 50 запитів.
+
       - alert: SlowResponse
-        expr: histogram_quantile(0.95, sum(rate(legal_ai_agent_request_latency_seconds_bucket[5m])) by (le)) > 2
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(legal_ai_agent_request_latency_seconds_bucket[5m])) by (le)
+          ) > 2
         for: 2m
+        labels:
+          severity: warning
         annotations:
-          summary: "95-й процентиль часу відповіді > 2s"
+          summary: "Повільна відповідь сервісу"
+          description: >-
+            95-й процентиль часу відповіді агента становить {{ $value }} с,
+            що перевищує поріг у 2 с.
