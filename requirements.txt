@@ -9,6 +9,6 @@ flake8
 black
 mypy
 streamlit
-prometheus-clientp
+prometheus-client
 psycopg2-binary 
  
