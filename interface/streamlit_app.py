@@ -3,10 +3,14 @@ import sys
 import time
 
 # Додаємо кореневу директорію проєкту в sys.path, щоб імпорт prozorro_loader працював
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(
+    0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+)
 
 import streamlit as st  # noqa: E402
 from prometheus_client import Counter, Histogram  # noqa: E402
+
 import prozorro_loader  # noqa: E402
 
 # Налаштування сторінки Streamlit (UI)
@@ -28,13 +32,15 @@ REQUEST_LATENCY = Histogram(
 
 st.title("🔎 Magilarity Legal AI Agent")
 
-# Бічна панель для введення параметрів
+
 def load_sidebar():
+    """Бічна панель для введення параметрів."""
     with st.sidebar:
         st.header("Тендер для аналізу")
         tid = st.text_input("Enter Tender ID:")
         run = st.button("Analyze Tender")
     return tid, run
+
 
 tender_id, analyze = load_sidebar()
 
@@ -60,4 +66,7 @@ if analyze:
 
 # Футер із посиланням на метрики (HTTP-сервер метрик запускається через start.sh)
 st.markdown("---")
-st.write("📊 **Metrics endpoint:** [http://localhost:8001/metrics](http://localhost:8001/metrics)")
+st.write(
+    "📊 **Metrics endpoint:** "
+    "[http://localhost:8001/metrics](http://localhost:8001/metrics)"
+)
