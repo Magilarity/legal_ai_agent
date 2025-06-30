@@ -5,10 +5,9 @@ import time
 # Додаємо кореневу директорію проєкту в sys.path, щоб імпорт prozorro_loader працював
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import streamlit as st
-from prometheus_client import Counter, Histogram
-
-import prozorro_loader
+import streamlit as st  # noqa: E402
+from prometheus_client import Counter, Histogram  # noqa: E402
+import prozorro_loader  # noqa: E402
 
 # Налаштування сторінки Streamlit (UI)
 st.set_page_config(page_title="Magilarity Legal Agent", layout="wide")
