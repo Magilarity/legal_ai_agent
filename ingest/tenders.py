@@ -1,4 +1,4 @@
-from db.schema import ENGINE, Document, Session
+from db.schema import engine, Document, Session
 
 
 def extract_text(path: str) -> str:
