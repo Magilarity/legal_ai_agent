@@ -1,14 +1,12 @@
 # db/schema.py
 
-import os
-from dotenv import load_dotenv
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, DeclarativeMeta
 
-# читаємо .env
-load_dotenv()
+# Імпортуємо налаштування з app/config.py
+from app.config import settings
 
 Base: DeclarativeMeta = declarative_base()
 
@@ -40,21 +38,21 @@ class Decision(Base):
     content = Column(String)
 
 
-# читаємо URL
-raw_url = os.getenv("DATABASE_URL", "").strip()
+# Отримуємо URL з Pydantic Settings (вже валідовано)
+raw_url = settings.database_url.strip()
 DATABASE_URL = raw_url if raw_url else "sqlite:///local.db"
 
-# спочатку пробуємо підключитися до PostgreSQL
+# Першочергово намагаємося підключитися до PostgreSQL
 try:
     engine = create_engine(DATABASE_URL, echo=False)
-    # тестове підключення
+    # Тестове підключення
     with engine.connect():
         pass
 except OperationalError:
-    # якщо не вдається — падаємо на SQLite
+    # Фолбек на SQLite
     print(f"⚠️ Не можу підключитися до {DATABASE_URL}, використовую SQLite fallback.")
     DATABASE_URL = "sqlite:///local.db"
     engine = create_engine(DATABASE_URL, echo=False)
 
-# фабрика сесій
+# Фабрика сесій
 Session = sessionmaker(bind=engine)
