@@ -19,22 +19,22 @@ class Document(Base):
 
 class LegalAct(Base):
     __tablename__ = "legal_acts"
-    id      = Column(Integer, primary_key=True)
-    title   = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
     content = Column(String)
 
 
 class Consultation(Base):
     __tablename__ = "consultations"
-    id      = Column(Integer, primary_key=True)
-    title   = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
     content = Column(String)
 
 
 class Decision(Base):
     __tablename__ = "decisions"
-    id      = Column(Integer, primary_key=True)
-    title   = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
     content = Column(String)
 
 

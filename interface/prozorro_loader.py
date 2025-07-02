@@ -2,6 +2,7 @@
 
 from ingest.loader import download_documents
 
+
 # щоб зберегти старий інтерфейс:
 def __getattr__(name):
     if name == "download_documents":

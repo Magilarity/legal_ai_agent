@@ -2,6 +2,7 @@ from openai import OpenAI
 from db.schema import Session, Document
 import pinecone
 
+
 class LegalAgent:
     def __init__(self, api_key: str, db_url: str, pinecone_key: str):
         self.client = OpenAI(api_key=api_key)
@@ -22,4 +23,6 @@ class LegalAgent:
     def answer(self, query: str):
         ctx = "\n---\n".join([d.content for d in self.retrieve(query)])
         prompt = f"Context:\n{ctx}\nQuestion: {query}\nAnswer:"
-        return self.client.chat.completions.create(model="gpt-4o-mini", messages=[{"role":"user","content":prompt}])
+        return self.client.chat.completions.create(
+            model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]
+        )
