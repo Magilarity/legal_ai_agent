@@ -4,6 +4,10 @@ services:
     build: .
     container_name: legal_ai_agent
     env_file: .env
+    # Додаємо маунт файлу .env всередину контейнера,
+    # щоб load_dotenv() міг його прочитати:
+    volumes:
+      - ./.env:/app/.env:ro
     ports:
       - "8501:8501"    # Streamlit UI
       - "8001:8001"    # Prometheus метрики
@@ -60,7 +64,6 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=alex1949
     restart: unless-stopped
-    # --- тут додаємо том ---
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -68,3 +71,4 @@ services:
 
 volumes:
   db_data:
+  grafana_data:

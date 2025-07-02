@@ -1,30 +1,26 @@
-# Секрети / середовище
-.env
+# Python environment
+.venv/
+venv/
 
-# Python кеші
+# Bytecode / caches
 __pycache__/
 *.py[cod]
 
-# Virtualenv
-.venv/
-env/
-venv/
-
-# Логи, бекапи, БД
-*.log
-*.sqlite3
-*.db
-backups/
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-
-# IDE / Editor
+# IDE / system
+*.DS_Store
+.project
 .vscode/
-.idea/
 
-# ОС-специфічне
-.DS_Store
-Thumbs.db
+# Проектні артефакти
+project_tree.txt
+dejavu-sans.zip
+
+# Секрети
+.env
+
+# Документи
+*.pkl
+
+.mypy_cache/
+
+terraform.tfvars

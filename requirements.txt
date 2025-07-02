@@ -10,5 +10,6 @@ black
 mypy
 streamlit
 prometheus-client
-psycopg2-binary 
- 
+psycopg2-binary
+pydantic-settings
+pydantic

@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  vault:
+    image: vault:1.14.3
+    container_name: vault
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+    volumes:
+      - ./monitoring/vault-agent.hcl:/etc/vault-agent.hcl:ro
+      - ./monitoring/vault-secrets:/vault/secrets:ro
+    command: ["vault", "agent", "-config=/etc/vault-agent.hcl"]
+    restart: unless-stopped
+
+  app:
+    volumes:
+      - ./monitoring/vault-secrets:/vault/secrets:ro
+      - ./app/settings.py:/app/app/settings.py:ro  # щоб налаштування підхопили .env
