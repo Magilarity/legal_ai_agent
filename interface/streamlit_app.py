@@ -1,72 +1,44 @@
-import os
-import sys
+# interface/streamlit_app.py
 import time
+import streamlit as st
+from interface.prozorro_loader import download_documents_with_progress
+from app.full_analysis import analyze_tender
 
-# Додаємо кореневу директорію проєкту в sys.path, щоб імпорт prozorro_loader працював
-sys.path.insert(
-    0,
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+# Імпортуємо метрики з єдиного модуля app/metrics.py
+from app.metrics import registry, REQUEST_COUNT, REQUEST_LATENCY, init_metrics
+from prometheus_client import generate_latest
+
+# Запускаємо HTTP-сервер для експонування метрик (працює у фоновому потоці)
+init_metrics()  # за замовчуванням на порті 8000
+
+# Інтерфейс Streamlit
+st.title("Magilarity Legal AI Agent")
+
+tender_id = st.text_input(
+    "Tender ID", help="Введіть ідентифікатор тендеру (наприклад UA-2025-06-09-008224-a)"
 )
 
-import streamlit as st  # noqa: E402
-from prometheus_client import Counter, Histogram  # noqa: E402
+if st.button("Analyze"):
+    # Вимірюємо час виконання для гістограми
+    start_ts = time.time()
+    try:
+        # Лічильник запитів
+        REQUEST_COUNT.labels(endpoint="analyze").inc()
 
-import prozorro_loader  # noqa: E402
+        # Завантаження документів та аналіз
+        path = download_documents_with_progress(tender_id, None, None)
+        st.write(f"📂 Документи збережено в: `{path}`")
 
-# Налаштування сторінки Streamlit (UI)
-st.set_page_config(page_title="Magilarity Legal Agent", layout="wide")
+        analyze_tender(tender_id)
+        st.success("✅ Аналіз завершено успішно.")
+    except Exception as e:
+        st.error(f"❌ Сталася помилка під час аналізу: {e}")
+    finally:
+        # Фіксуємо латентність запиту
+        elapsed = time.time() - start_ts
+        REQUEST_LATENCY.labels(endpoint="analyze").observe(elapsed)
 
-# ─── Prometheus метрики ─────────────────────────────────────────────────────────
-REQUEST_COUNT = Counter(
-    "legal_ai_agent_requests_total",
-    "Кількість запитів до Legal AI Agent через Streamlit UI",
-    ["action"],
-)
-
-REQUEST_LATENCY = Histogram(
-    "legal_ai_agent_request_latency_seconds",
-    "Час обробки запиту до Legal AI Agent через Streamlit UI",
-    ["action"],
-)
-# ────────────────────────────────────────────────────────────────────────────────
-
-st.title("🔎 Magilarity Legal AI Agent")
-
-
-def load_sidebar():
-    """Бічна панель для введення параметрів."""
-    with st.sidebar:
-        st.header("Тендер для аналізу")
-        tid = st.text_input("Enter Tender ID:")
-        run = st.button("Analyze Tender")
-    return tid, run
-
-
-tender_id, analyze = load_sidebar()
-
-# Основна панель — результати
-if analyze:
-    if not tender_id:
-        st.warning("Будь ласка, введіть дійсний Tender ID перед аналізом.")
-    else:
-        action = "analyze_tender"
-        REQUEST_COUNT.labels(action=action).inc()
-        start_ts = time.time()
-
-        st.info(f"🔄 Аналіз тендеру: `{tender_id}`…")
-        try:
-            result = prozorro_loader.download_and_analyze(tender_id)
-            elapsed = time.time() - start_ts
-            REQUEST_LATENCY.labels(action=action).observe(elapsed)
-
-            st.success("✅ Аналіз завершено!")
-            st.write(result)
-        except Exception as e:
-            st.error(f"❌ Помилка під час аналізу: {e}")
-
-# Футер із посиланням на метрики (HTTP-сервер метрик запускається через start.sh)
-st.markdown("---")
-st.write(
-    "📊 **Metrics endpoint:** "
-    "[http://localhost:8001/metrics](http://localhost:8001/metrics)"
-)
+# Опціонально: показ Prometheus метрик у UI
+if st.checkbox("Show Prometheus metrics"):
+    metrics_output = generate_latest(registry)
+    st.text(metrics_output.decode("utf-8"))
