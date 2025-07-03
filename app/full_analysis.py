@@ -2,7 +2,19 @@
 # mypy: disable-error-code="attr-defined"
 
 from interface.prozorro_loader import download_documents
-from typing import Any, List
+from typing import Any, List, Protocol
+
+
+class EmbedderProtocol(Protocol):
+    def embed_text(self, text: str) -> List[float]: ...
+
+
+class RetrieverProtocol(Protocol):
+    def retrieve(self, query_embedding: List[float], top_k: int) -> List[str]: ...
+
+
+class LLMProtocol(Protocol):
+    def generate(self, prompt: str) -> str: ...
 
 
 class RAGEngine:
@@ -11,7 +23,12 @@ class RAGEngine:
     Працює за схемою: ембединг запиту → пошук релевантних документів → генерація відповіді.
     """
 
-    def __init__(self, embedder: Any, retriever: Any, llm: Any):
+    def __init__(
+        self,
+        embedder: EmbedderProtocol,
+        retriever: RetrieverProtocol,
+        llm: LLMProtocol,
+    ) -> None:
         """
         :param embedder: об’єкт із методом embed_text(text: str) -> List[float]
         :param retriever: об’єкт із методом retrieve(query_embedding: List[float], top_k: int) -> List[str]
@@ -24,14 +41,25 @@ class RAGEngine:
     def run(self, query: str) -> str:
         """
         Виконує RAG-пайплайн для вхідного запиту.
+        :param query: текст запиту
+        :return: згенерована відповідь
+        :raises ValueError: якщо query порожній або містить лише пробіли
         """
         if not query or not query.strip():
             raise ValueError("Query must not be empty")
 
+        # 1) Ембединг запиту
         embedding = self.embedder.embed_text(query)
+
+        # 2) Пошук релевантних документів
         docs = self.retriever.retrieve(embedding, top_k=3)
+
+        # 3) Формування промпту
         prompt = self._build_prompt(query, docs)
-        return self.llm.generate(prompt)
+
+        # 4) Запит до LLM
+        answer = self.llm.generate(prompt)
+        return answer
 
     def _build_prompt(self, query: str, docs: List[str]) -> str:
         """
