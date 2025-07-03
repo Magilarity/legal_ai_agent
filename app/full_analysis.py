@@ -1,9 +1,8 @@
 # app/full_analysis.py
-
 # mypy: disable-error-code="attr-defined"
 
-from typing import List, Any
 from interface.prozorro_loader import download_documents
+from typing import Any, List
 
 
 class RAGEngine:
@@ -29,16 +28,9 @@ class RAGEngine:
         if not query or not query.strip():
             raise ValueError("Query must not be empty")
 
-        # 1) Ембединг запиту
         embedding = self.embedder.embed_text(query)
-
-        # 2) Пошук релевантних документів
         docs = self.retriever.retrieve(embedding, top_k=3)
-
-        # 3) Формування промпту
         prompt = self._build_prompt(query, docs)
-
-        # 4) Запит до LLM
         return self.llm.generate(prompt)
 
     def _build_prompt(self, query: str, docs: List[str]) -> str:
@@ -53,8 +45,5 @@ def analyze_tender(tender_id: str) -> None:
     """
     Завантажує документи тендеру та виконує подальший аналіз.
     """
-    # Завантажуємо документи з Prozorro
     path = download_documents(tender_id)
-
-    # Ваш аналіз тут
     print(f"Documents downloaded to {path}. Додайте вашу логіку аналізу тут.")

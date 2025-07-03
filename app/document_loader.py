@@ -1,6 +1,6 @@
 # app/document_loader.py
-from typing import List
 from collections import namedtuple
+from typing import List
 
 
 def load(path: str) -> str:
@@ -11,7 +11,6 @@ def load(path: str) -> str:
     try:
         with open(path, "rb") as f:
             data = f.read()
-        # Спробувати декодування utf-8, інакше cp1251
         try:
             text = data.decode("utf-8")
         except UnicodeDecodeError:

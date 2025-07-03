@@ -1,10 +1,12 @@
 # app/embedder.py
 from typing import List
 
+
 class Embedder:
     """
     Обгортка для ембедер-моделі, що перетворює текст у вектор.
     """
+
     def __init__(self):
         # TODO: Ініціалізація реального ембедеру (наприклад OpenAI)
         pass
