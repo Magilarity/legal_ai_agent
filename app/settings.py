@@ -1,21 +1,15 @@
-from pydantic import BaseSettings, Field
-from pathlib import Path
-import subprocess
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
-    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
-    database_url: str = Field(..., env="DATABASE_URL")
-    slack_api_url: str = Field(..., env="SLACK_API_URL")
+    # читаем .env и валидируем при присвоении
+    model_config = SettingsConfigDict(env_file=".env", validate_assignment=True)
 
-    class Config:
-        validate_assignment = True
+    openai_api_key: str = Field(..., env="OPENAI_API_KEY")  # type: ignore[call-overload]
+    database_url: str = Field(..., env="DATABASE_URL")  # type: ignore[call-overload]
+    slack_api_url: str = Field(..., env="SLACK_API_URL")  # type: ignore[call-overload]
 
 
-# перед інстанціюванням вишукаємо секрети з Vault
-vault_token = subprocess.run(
-    ["vault", "agent", "-config=monitoring/vault-agent.hcl"], capture_output=True
-)
-# після старту Vault Agent середовище наповниться
-
-settings = Settings()
+# инстанцируем — читаем значения из окружения
+settings = Settings()  # type: ignore[call-arg]
