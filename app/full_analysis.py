@@ -6,15 +6,37 @@ from typing import Any, List, Protocol
 
 
 class EmbedderProtocol(Protocol):
-    def embed_text(self, text: str) -> List[float]: ...
+    def embed_text(
+        self,
+        text: str,
+    ) -> List[float]:
+        """
+        Перетворює текст у вектор.
+        """
+        ...
 
 
 class RetrieverProtocol(Protocol):
-    def retrieve(self, query_embedding: List[float], top_k: int) -> List[str]: ...
+    def retrieve(
+        self,
+        query_embedding: List[float],
+        top_k: int,
+    ) -> List[str]:
+        """
+        Повертає список релевантних документів.
+        """
+        ...
 
 
 class LLMProtocol(Protocol):
-    def generate(self, prompt: str) -> str: ...
+    def generate(
+        self,
+        prompt: str,
+    ) -> str:
+        """
+        Генерує відповідь на основі промпту.
+        """
+        ...
 
 
 class RAGEngine:
