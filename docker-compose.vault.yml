@@ -1,0 +1,55 @@
+version: '3.8'
+services:
+  vault:
+    image: vault:1.14.3
+    container_name: vault
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+    volumes:
+      - ./monitoring/vault-agent.hcl:/etc/vault-agent.hcl:ro
+      - ./monitoring/vault-secrets:/vault/secrets:ro
+    command:
+      - "vault"
+      - "agent"
+      - "-config=/etc/vault-agent.hcl"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: legal_ai_agent
+    env_file:
+      - /vault/secrets/.env
+    working_dir: /app
+    command:
+      - "streamlit"
+      - "run"
+      - "interface/streamlit_app.py"
+      - "--server.address=0.0.0.0"
+    ports:
+      - "8501:8501"
+      - "8001:8001"
+    volumes:
+      - ./:/app:ro
+      - ./monitoring/vault-secrets:/vault/secrets:ro
+    depends_on:
+      - vault
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    container_name: legal_ai_agent_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pass}
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  db_data:

@@ -1,0 +1,19 @@
+[flake8]
+max-line-length = 88
+ignore = E203, E501
+
+exclude =
+    .git
+    __pycache__
+    .venv
+    docs
+    build
+
+per-file-ignores =
+    # Тести ігноруємо у всіх підпапках
+    tests/**: E401,E402,F401,F403,F405,F811,F841,B010,B017,W503
+
+    # Ці модулі поки ігноруємо по F401/F821
+    app/full_analysis.py: F401
+    app/llm_agent.py: F401
+    ingest/loader.py: F401

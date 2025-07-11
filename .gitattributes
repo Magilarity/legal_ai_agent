@@ -1,0 +1,7 @@
+# Гарантуємо LF у всіх текстових файлах
+* text=auto eol=lf
+# Примушує Git зберігати start.sh тільки з LF
+start.sh text eol=lf
+
+# Можна ще й узагальнити для всіх shell-скриптів
+*.sh text eol=lf

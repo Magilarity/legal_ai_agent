@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'legal_ai_agent'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['legal_ai_agent:8001']
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - 'alerts.rules.yml'

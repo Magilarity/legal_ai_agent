@@ -1,0 +1,7 @@
+streamlit>=1.25.0
+requests
+pandas
+langchain
+openpyxl
+python-dotenv
+prometheus-client

@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: legal_ai_agent
+Version: 0.1.0
+Summary: Legal AI Agent для аналізу та генерації юридичних документів
+Author: Ваше Ім’я або Компанія
+Requires-Dist: streamlit>=1.25.0
+Requires-Dist: requests
+Requires-Dist: pandas
+Requires-Dist: langchain
+Requires-Dist: openpyxl
+Requires-Dist: python-dotenv
+Requires-Dist: prometheus-client
+Dynamic: author
+Dynamic: requires-dist
+Dynamic: summary

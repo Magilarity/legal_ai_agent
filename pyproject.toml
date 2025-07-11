@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=60.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+# Де лежать тести
+testpaths = ["tests"]
+# Імена файлів із тестами
+python_files = ["test_*.py"]
+# Додаткові опції: зупинятися після першої невдачі, відключити ворнинги, тихий режим
+addopts = """
+  --maxfail=1
+  --disable-warnings
+  -q
+  --cov=app
+  --cov=ingest
+  --cov=interface
+  --cov=db
+  --cov=monitoring
+  --cov-report=term-missing
+"""
+
+[tool.coverage.run]
+branch = true
+source = ["app", "ingest", "interface", "db", "monitoring"]
+
+[tool.coverage.report]
+# Файли, які не враховуються у звіті
+omit = [
+  "*/__init__.py",
+  "*/__pycache__/*"
+]

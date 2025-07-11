@@ -1,0 +1,22 @@
+site_name: Legal AI Agent
+site_description: Документація по запуску, розробці та деплою агента
+site_author: Your Name
+nav:
+  - Головна: index.md
+  - Quickstart: quickstart.md
+  - Dev Setup: dev_setup.md
+  - Deployment: deployment.md
+  - CI/CD: ci_cd.md
+  - Testing: testing.md
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+  font:
+    text: Roboto
+    code: Roboto Mono
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/yourorg/legal_ai_agent

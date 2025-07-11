@@ -1,0 +1,26 @@
+# Python environment
+.venv/
+venv/
+
+# Bytecode / caches
+__pycache__/
+*.py[cod]
+
+# IDE / system
+*.DS_Store
+.project
+.vscode/
+
+# Проектні артефакти
+project_tree.txt
+dejavu-sans.zip
+
+# Секрети
+.env
+
+# Документи
+*.pkl
+
+.mypy_cache/
+
+terraform.tfvars
