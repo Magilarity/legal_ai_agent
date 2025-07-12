@@ -1,8 +1,9 @@
 # tests/unit/test_logging_config.py
 import logging
 import re
+from logging.handlers import RotatingFileHandler, SMTPHandler
+
 import pytest
-from logging.handlers import SMTPHandler, RotatingFileHandler
 
 import app.logging_config as log_mod
 

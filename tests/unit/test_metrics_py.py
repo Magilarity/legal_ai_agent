@@ -1,11 +1,12 @@
 # tests/unit/test_metrics_py.py
-import pytest
+import socket
 import threading
 import time
-import requests
-import socket
 
+import pytest
+import requests
 from prometheus_client.parser import text_string_to_metric_families
+
 import app.metrics as metrics_mod
 
 

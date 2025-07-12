@@ -1,7 +1,8 @@
 # tests/unit/test_signature_modules_detailed.py
-import pytest
 import tempfile
 from pathlib import Path
+
+import pytest
 
 # sign_extractor
 sign_mod = pytest.importorskip("app.sign_extractor")

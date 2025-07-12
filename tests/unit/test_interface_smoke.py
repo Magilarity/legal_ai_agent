@@ -1,6 +1,7 @@
 # tests/unit/test_interface_smoke.py
-import pytest
 import importlib
+
+import pytest
 
 
 @pytest.mark.parametrize(

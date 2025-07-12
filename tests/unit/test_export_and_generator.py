@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.export_utils import build_report, another_function
+from app.export_utils import another_function, build_report
 
 
 def test_build_report_returns_bytes_default():

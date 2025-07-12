@@ -1,6 +1,7 @@
 import time
-import openai
 from typing import List
+
+import openai
 
 
 class LLMAgent:

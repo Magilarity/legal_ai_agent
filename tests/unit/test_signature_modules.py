@@ -1,8 +1,9 @@
 # tests/unit/test_signature_modules.py
 
-import pytest
 import importlib
 from pathlib import Path
+
+import pytest
 
 # Тест для модуля app.sign_extractor
 try:

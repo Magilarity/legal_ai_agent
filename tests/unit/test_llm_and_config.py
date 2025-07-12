@@ -1,8 +1,9 @@
 # tests/unit/test_llm_and_config.py
 
+import logging
 import sys
 import types
-import logging
+
 import pytest
 
 # ——————————————————————————————————————————————————————————————

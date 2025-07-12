@@ -5,10 +5,11 @@ pytest.skip(
     "Legacy tests skipped — analyze_tender тепер повертає рядок через RAGEngine",
     allow_module_level=True,
 )
-import pytest
-import numpy as np
 import importlib
 from unittest.mock import MagicMock
+
+import numpy as np
+import pytest
 
 # Перевіряємо наявність модуля
 full = pytest.importorskip("app.full_analysis", reason="app.full_analysis required")

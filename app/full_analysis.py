@@ -1,12 +1,13 @@
 # app/full_analysis.py
 # mypy: disable-error-code="attr-defined"
 
-from interface.prozorro_loader import download_documents
-from typing import Protocol, List
+from typing import List, Protocol
 
 import faiss
 import numpy as np
+
 from app.llm_agent import LLMAgent
+from interface.prozorro_loader import download_documents
 
 # Розмір ембеддінгу — замініть на реальний
 EMBED_DIM = 2

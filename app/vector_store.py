@@ -1,6 +1,7 @@
+from typing import List, cast
+
 import faiss
 import numpy as np
-from typing import List, cast
 
 
 def search_index(

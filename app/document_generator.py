@@ -1,7 +1,8 @@
 # app/document_generator.py
+from typing import Any, Dict
+
 import jinja2
 from jinja2.sandbox import SandboxedEnvironment
-from typing import Dict, Any
 
 
 class DocumentGenerator:

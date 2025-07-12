@@ -1,6 +1,7 @@
 # tests/unit/test_ingest_loader.py
 
 import pytest
+
 import ingest.loader as loader
 
 # Список можливих імен функції для завантаження документів

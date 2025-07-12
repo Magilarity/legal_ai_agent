@@ -1,6 +1,8 @@
 # tests/unit/test_ingest_loader_detailed.py
-import pytest, importlib
+import importlib
 from inspect import signature
+
+import pytest
 import requests
 
 ldr_mod = pytest.importorskip("ingest.loader", reason="ingest.loader required")

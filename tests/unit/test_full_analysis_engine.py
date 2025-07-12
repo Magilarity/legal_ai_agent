@@ -1,12 +1,8 @@
-import pytest
-import numpy as np
 import faiss
+import numpy as np
+import pytest
 
-from app.full_analysis import (
-    RAGEngine,
-    load_faiss_index,
-    embed_texts,
-)
+from app.full_analysis import RAGEngine, embed_texts, load_faiss_index
 
 
 class DummyEmbedder:

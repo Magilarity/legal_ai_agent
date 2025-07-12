@@ -1,6 +1,7 @@
 # tests/unit/test_ingest_sources_detailed.py
-import pytest
 import importlib
+
+import pytest
 import requests
 from requests.exceptions import Timeout
 

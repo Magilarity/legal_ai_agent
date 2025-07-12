@@ -1,7 +1,8 @@
 # tests/unit/test_ingest_loader_advanced.py
-import pytest
 import importlib
 import json
+
+import pytest
 
 ldr_mod = pytest.importorskip("ingest.loader")
 load_fn = next(

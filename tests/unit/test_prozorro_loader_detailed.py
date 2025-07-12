@@ -1,6 +1,7 @@
 # tests/unit/test_prozorro_loader_detailed.py
-import pytest
 import importlib
+
+import pytest
 
 mod = pytest.importorskip("interface.prozorro_loader")
 

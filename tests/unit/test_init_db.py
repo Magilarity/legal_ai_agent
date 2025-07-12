@@ -1,6 +1,7 @@
 # tests/unit/test_init_db.py
 import sys
 import types
+
 import pytest
 from sqlalchemy import create_engine
 

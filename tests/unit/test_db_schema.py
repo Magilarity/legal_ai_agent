@@ -2,6 +2,7 @@
 
 import sys
 import types
+
 import pytest
 from sqlalchemy import create_engine, text
 
@@ -30,7 +31,7 @@ app_config.settings = types.SimpleNamespace(database_url="sqlite:///:memory:")
 sys.modules["app.config"] = app_config
 # ——————————————————————————————————————————————————————————————
 
-from db.schema import Base, TABLES
+from db.schema import TABLES, Base
 
 
 def test_schema_creates_all_tables():

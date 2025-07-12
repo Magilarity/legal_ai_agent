@@ -1,6 +1,7 @@
-import pytest
-from unittest.mock import patch, MagicMock
 import time
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Dynamically import agent module and class
 import app.llm_agent as llm_mod

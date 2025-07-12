@@ -20,8 +20,8 @@ from app.metrics import init_metrics, registry
 
 # Регіструємо лічильники/гістограми
 init_metrics()
-# Експонуємо їх на 0.0.0.0:8001
-start_http_server(8001, registry=registry)
+# Експонуємо їх на 0.0.0.0:8002
+start_http_server(8002, registry=registry)
 
 # Тримаємо процес живим
 while True:

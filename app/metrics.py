@@ -1,8 +1,9 @@
 # app/metrics.py
 # mypy: disable-error-code="import-not-found"
 
-from prometheus_client import CollectorRegistry, Counter, Histogram, start_http_server
 import errno
+
+from prometheus_client import CollectorRegistry, Counter, Histogram, start_http_server
 
 # Використовуємо окремий реєстр метрик, щоб уникнути реєстрації дублікатів при повторних імпортах
 registry = CollectorRegistry()

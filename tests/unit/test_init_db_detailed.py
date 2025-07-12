@@ -1,5 +1,8 @@
 # tests/unit/test_init_db_detailed.py
-import sys, types, importlib
+import importlib
+import sys
+import types
+
 import pytest
 from sqlalchemy.exc import OperationalError
 

@@ -18,3 +18,4 @@ langchain
 uvicorn[standard]
 fastapi
 faiss-cpu
+python-multipart

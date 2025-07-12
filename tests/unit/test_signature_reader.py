@@ -1,6 +1,7 @@
 # tests/unit/test_signature_reader.py
-import pytest
 import importlib
+
+import pytest
 
 reader_mod = importlib.import_module("app.signature_reader")
 readers = [getattr(reader_mod, n) for n in dir(reader_mod) if n.endswith("Reader")]

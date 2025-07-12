@@ -1,6 +1,7 @@
 # tests/unit/test_signature_extractor.py
-import pytest
 import importlib
+
+import pytest
 
 sigext = importlib.import_module("app.signature_extractor")
 classes = [getattr(sigext, n) for n in dir(sigext) if n.endswith("Extractor")]

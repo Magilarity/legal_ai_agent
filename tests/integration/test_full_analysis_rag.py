@@ -1,9 +1,10 @@
 # tests/integration/test_full_analysis_rag.py
 
-import pytest
 from unittest.mock import MagicMock
+
 import faiss
 import numpy as np
+import pytest
 
 # Імпортуємо модуль, який тестуємо
 import app.full_analysis as full

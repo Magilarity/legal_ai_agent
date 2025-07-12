@@ -1,7 +1,7 @@
 # tests/unit/test_vector_store.py
 
-import pytest
 import numpy as np
+import pytest
 
 # Пропускаємо тест, якщо faiss не встановлений
 faiss = pytest.importorskip(

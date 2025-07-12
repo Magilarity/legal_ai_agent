@@ -24,3 +24,9 @@ dejavu-sans.zip
 .mypy_cache/
 
 terraform.tfvars
+# Terraform state files (NEVER commit these)
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/tfplan

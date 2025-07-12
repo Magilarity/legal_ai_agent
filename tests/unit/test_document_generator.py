@@ -1,6 +1,7 @@
 # tests/unit/test_document_generator.py
-import pytest
 import jinja2
+import pytest
+
 from app.document_generator import DocumentGenerator
 
 

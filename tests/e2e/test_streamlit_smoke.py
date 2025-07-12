@@ -1,10 +1,11 @@
-import time
-import pytest
-from playwright.sync_api import sync_playwright
-import subprocess
 import os
 import signal
+import subprocess
 import sys
+import time
+
+import pytest
+from playwright.sync_api import sync_playwright
 
 STREAMLIT_CMD = [
     sys.executable,

@@ -1,6 +1,7 @@
 # tests/unit/test_init_db_core.py
 import sys
 import types
+
 import pytest
 from sqlalchemy import inspect
 
@@ -13,9 +14,10 @@ appcfg = types.ModuleType("app.config")
 appcfg.settings = types.SimpleNamespace(database_url="sqlite:///:memory:")
 sys.modules["app.config"] = appcfg
 
+import db.init_db as init_mod
+
 # Імпортуємо схему та функцію init_db
 import db.schema as schema_mod
-import db.init_db as init_mod
 
 
 def test_init_db_function_creates_tables():

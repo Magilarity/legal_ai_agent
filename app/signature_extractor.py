@@ -1,5 +1,6 @@
+from typing import Dict, List
+
 from asn1crypto import cms
-from typing import List, Dict
 
 
 def extract_signature_info(p7s_path: str) -> List[Dict[str, str]]:
